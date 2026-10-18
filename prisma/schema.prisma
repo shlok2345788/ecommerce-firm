@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  CUSTOMER
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id                String        @id @default(uuid())
+  name              String
+  email             String        @unique
+  phone             String?
+  passwordHash      String
+  role              Role          @default(ADMIN)
+  status            AccountStatus @default(ACTIVE)
+  firstLogin        Boolean       @default(true)
+  registeredStoreId String?
+  registeredStore   Store?        @relation("StoreRegisteredCustomers", fields: [registeredStoreId], references: [id], onDelete: SetNull)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  stores            Store[]       @relation("StoreAdmin")
+  customerOrders    Order[]       @relation("CustomerOrders")
+}
+
+model Store {
+  id          String      @id @default(uuid())
+  adminId     String
+  admin       User        @relation("StoreAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String      @unique
+  logoUrl     String?
+  description String?
+  phone       String
+  address     String?
+  status      StoreStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  categories  Category[]
+  products    Product[]
+  orders      Order[]
+  customers   User[]      @relation("StoreRegisteredCustomers")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  products  Product[]
+
+  @@unique([storeId, slug])
+}
+
+model Product {
+  id            String      @id @default(uuid())
+  storeId       String
+  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId    String?
+  category      Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  title         String
+  description   String?
+  price         Decimal     @db.Decimal(10, 2)
+  discountPrice Decimal?    @db.Decimal(10, 2)
+  stock         Int         @default(0)
+  images        String[]
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  orderItems    OrderItem[]
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  storeId         String
+  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        User?       @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: SetNull)
+  customerName    String
+  customerPhone   String
+  shippingAddress String
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  paymentMethod   String      @default("Cash / Offline Order")
+  createdAt       DateTime    @default(now())
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+}
