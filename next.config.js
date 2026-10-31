@@ -14,11 +14,11 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '');
+    const backendUrl = (
+      process.env.BACKEND_URL || 'https://ecommerce-firm.onrender.com'
+    ).replace(/\/$/, '');
 
-    return backendUrl
-      ? [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }]
-      : [];
+    return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }];
   },
 };
 
