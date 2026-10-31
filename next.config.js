@@ -18,7 +18,11 @@ const nextConfig = {
       process.env.BACKEND_URL || 'https://ecommerce-firm.onrender.com'
     ).replace(/\/$/, '');
 
-    return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }];
+    return {
+      beforeFiles: [
+        { source: '/api/:path*', destination: `${backendUrl}/api/:path*` },
+      ],
+    };
   },
 };
 
