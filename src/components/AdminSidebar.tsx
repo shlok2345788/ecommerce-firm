@@ -15,6 +15,8 @@ import {
   Check,
   Store,
   Users,
+  FileSpreadsheet,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -53,6 +55,8 @@ export default function AdminSidebar({
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Categories', href: '/admin/categories', icon: Layers },
     { label: 'Products', href: '/admin/products', icon: Package },
+    { label: 'Bulk Import', href: '/admin/products/import', icon: FileSpreadsheet },
+    { label: 'Product Fields', href: '/admin/products/fields', icon: SlidersHorizontal },
     { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
     { label: 'Customer Analytics', href: '/admin/analytics/customers', icon: Users },
     { label: 'Store Settings', href: '/admin/store-settings', icon: Sliders },

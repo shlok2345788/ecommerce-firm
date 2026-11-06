@@ -11,10 +11,12 @@ export interface ProductProps {
   id: string;
   title: string;
   description?: string | null;
-  price: number | string;
+  price?: number | string | null;
   discountPrice?: number | string | null;
-  stock: number;
+  stock?: number;
   images: string[];
+  publicFields?: Array<{ key: string; label: string; type: string; value: unknown }>;
+  purchaseAvailable?: boolean;
   category?: { name: string; slug: string } | null;
   badge?: string | null;
   isReorderItem?: boolean;
@@ -37,10 +39,12 @@ export default function ProductCard({
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  const discountPercent = calculateDiscount(product.price, product.discountPrice);
+  const discountPercent = product.price !== null && product.price !== undefined
+    ? calculateDiscount(product.price, product.discountPrice)
+    : null;
   const effectivePrice = product.discountPrice || product.price;
-  const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock > 0 && product.stock <= 5;
+  const isOutOfStock = !product.purchaseAvailable || (product.stock ?? 0) <= 0;
+  const isLowStock = (product.stock ?? 0) > 0 && (product.stock ?? 0) <= 5;
   const mainImage = product.images?.[0];
   const activeBadge = badgeText || product.badge;
   const showReorder = isReorder || product.isReorderItem;
@@ -131,19 +135,18 @@ export default function ProductCard({
           {product.title}
         </h3>
 
-        {/* Optional Description snippet if present */}
-        {product.description && (
-          <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed mb-2">
-            {product.description}
+        {product.publicFields?.slice(0, 2).map((field) => (
+          <p key={field.key} className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed mb-1">
+            <span className="font-medium text-zinc-600">{field.label}: </span>{String(field.value)}
           </p>
-        )}
+        ))}
 
         {/* Price & Stock */}
         <div className="mt-auto pt-1 flex items-baseline gap-2 mb-3">
-          <span className="text-base font-semibold text-zinc-900 font-mono">
+          {product.purchaseAvailable && effectivePrice !== null && effectivePrice !== undefined && <span className="text-base font-semibold text-zinc-900 font-mono">
             {formatCurrency(effectivePrice)}
-          </span>
-          {product.discountPrice && (
+          </span>}
+          {product.purchaseAvailable && product.discountPrice && product.price !== null && product.price !== undefined && (
             <span className="text-xs text-zinc-400 line-through font-mono">
               {formatCurrency(product.price)}
             </span>
@@ -167,6 +170,8 @@ export default function ProductCard({
               <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />
               {showReorder ? 'Reordered to Cart!' : 'Added to Cart'}
             </>
+          ) : !product.purchaseAvailable ? (
+            'Enquire for availability'
           ) : isOutOfStock ? (
             'Out of Stock'
           ) : showReorder ? (

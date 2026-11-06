@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { sanitizeProductsForCustomer } from '@/lib/productFields';
 
 export async function GET(
   req: NextRequest,
@@ -81,6 +82,8 @@ export async function GET(
       },
     });
 
+    const publicProducts = await sanitizeProductsForCustomer(products);
+
     return NextResponse.json({
       store: {
         id: store.id,
@@ -93,7 +96,7 @@ export async function GET(
         status: store.status,
       },
       categories: store.categories,
-      products,
+      products: publicProducts,
     });
   } catch (error) {
     console.error('Fetch store front error:', error);

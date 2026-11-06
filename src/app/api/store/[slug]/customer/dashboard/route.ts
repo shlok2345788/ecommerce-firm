@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { sanitizeProductsForCustomer } from '@/lib/productFields';
 
 export async function GET(
   req: NextRequest,
@@ -91,18 +92,16 @@ export async function GET(
       }
     }
 
-    const reorderProducts = Array.from(productMap.values()).map(
-      ({ product, orderCount, totalQuantity, lastOrderedAt }) => ({
-        ...product,
-        price: Number(product.price),
-        discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+    const reorderProducts = await Promise.all(Array.from(productMap.values()).map(
+      async ({ product, orderCount, totalQuantity, lastOrderedAt }) => ({
+        ...(await sanitizeProductsForCustomer([product]))[0],
         isReorderItem: true,
         badge: orderCount > 1 ? `Ordered ${orderCount}×` : 'Previously Purchased',
         orderCount,
         totalQuantity,
         lastOrderedAt,
       })
-    );
+    ));
 
     return NextResponse.json({
       store,

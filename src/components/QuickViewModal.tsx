@@ -22,9 +22,11 @@ export default function QuickViewModal({
   if (!product) return null;
 
   const images = product.images && product.images.length > 0 ? product.images : [];
-  const discountPercent = calculateDiscount(product.price, product.discountPrice);
+  const discountPercent = product.price !== null && product.price !== undefined
+    ? calculateDiscount(product.price, product.discountPrice)
+    : null;
   const effectivePrice = product.discountPrice || product.price;
-  const isOutOfStock = product.stock <= 0;
+  const isOutOfStock = !product.purchaseAvailable || (product.stock ?? 0) <= 0;
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
@@ -93,7 +95,7 @@ export default function QuickViewModal({
             </h2>
 
             {/* Pricing */}
-            <div className="flex items-baseline gap-2.5 mb-4">
+            {product.purchaseAvailable && effectivePrice !== null && effectivePrice !== undefined && <div className="flex items-baseline gap-2.5 mb-4">
               <span className="text-2xl font-bold text-zinc-900">
                 {formatCurrency(effectivePrice)}
               </span>
@@ -107,12 +109,15 @@ export default function QuickViewModal({
                   Save {discountPercent}%
                 </Badge>
               )}
-            </div>
+            </div>}
 
-            {/* Description */}
-            <p className="text-sm text-zinc-600 leading-relaxed mb-4">
-              {product.description || 'Authentic product verified by store merchant. Fast and reliable direct fulfillment.'}
-            </p>
+            <div className="space-y-2 mb-4">
+              {product.publicFields?.map((field) => (
+                <p key={field.key} className="text-sm text-zinc-600 leading-relaxed">
+                  <span className="font-medium text-zinc-800">{field.label}: </span>{String(field.value)}
+                </p>
+              ))}
+            </div>
 
             {/* Stock indicator */}
             <div className="flex items-center gap-2 mb-6 text-xs">
@@ -122,7 +127,7 @@ export default function QuickViewModal({
                 }`}
               />
               <span className={isOutOfStock ? 'text-red-700 font-medium' : 'text-emerald-700 font-medium'}>
-                {isOutOfStock ? 'Currently Out of Stock' : `In Stock (${product.stock} units available)`}
+                {!product.purchaseAvailable ? 'Contact store for availability' : isOutOfStock ? 'Currently Out of Stock' : `In Stock (${product.stock} units available)`}
               </span>
             </div>
 
@@ -137,6 +142,8 @@ export default function QuickViewModal({
                 <>
                   <Check className="w-4 h-4 mr-2 text-emerald-400" /> Added to Cart
                 </>
+              ) : !product.purchaseAvailable ? (
+                'Enquire for availability'
               ) : isOutOfStock ? (
                 'Sold Out'
               ) : (

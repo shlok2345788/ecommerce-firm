@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { generateWhatsAppOrderLink } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
+import { getEffectiveProductFields } from '@/lib/productFields';
 
 export async function POST(
   req: NextRequest,
@@ -73,6 +74,20 @@ export async function POST(
       if (!prod) continue;
 
       const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+      const fields = await getEffectiveProductFields(store.id, prod.categoryId, prod.id);
+      const priceField = fields.find((field) => field.key === 'price');
+      if (priceField?.customerVisibility !== 'VISIBLE') {
+        return NextResponse.json(
+          { error: `${prod.title} is not available for online checkout.` },
+          { status: 400 }
+        );
+      }
+      if (prod.price === null && prod.discountPrice === null) {
+        return NextResponse.json(
+          { error: `${prod.title} is not configured for paid checkout.` },
+          { status: 400 }
+        );
+      }
       const effectivePrice = prod.discountPrice ? Number(prod.discountPrice) : Number(prod.price);
       grandTotal += effectivePrice * qty;
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { sanitizeProductsForCustomer } from '@/lib/productFields';
 
 export async function GET(
   req: NextRequest,
@@ -83,16 +84,14 @@ export async function GET(
           }
         }
 
-        const reorderProducts = Array.from(productMap.values()).map(({ product, orderCount, totalQuantity, lastOrderedAt }) => ({
-          ...product,
-          price: Number(product.price),
-          discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+        const reorderProducts = await Promise.all(Array.from(productMap.values()).map(async ({ product, orderCount, totalQuantity, lastOrderedAt }) => ({
+          ...(await sanitizeProductsForCustomer([product]))[0],
           isReorderItem: true,
           badge: orderCount > 1 ? `Ordered ${orderCount}×` : 'Previously Purchased',
           orderCount,
           totalQuantity,
           lastOrderedAt,
-        }));
+        })));
 
         return NextResponse.json({
           source: 'reorder',
@@ -149,11 +148,10 @@ export async function GET(
         .filter(Boolean)
         .map((prod: any) => ({
           ...prod,
-          price: Number(prod.price),
-          discountPrice: prod.discountPrice ? Number(prod.discountPrice) : null,
           isReorderItem: false,
           badge: 'Top Sellers',
         }));
+      featuredProducts = await sanitizeProductsForCustomer(featuredProducts);
     }
 
     // Fallback if brand new store with zero orders
@@ -170,10 +168,9 @@ export async function GET(
         take: 8,
       });
 
-      featuredProducts = fallbackProducts.map((prod) => ({
+      featuredProducts = await sanitizeProductsForCustomer(fallbackProducts);
+      featuredProducts = featuredProducts.map((prod) => ({
         ...prod,
-        price: Number(prod.price),
-        discountPrice: prod.discountPrice ? Number(prod.discountPrice) : null,
         isReorderItem: false,
         badge: 'Top Sellers',
       }));

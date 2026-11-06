@@ -9,7 +9,7 @@ export interface CartItem {
   discountPrice?: number | null;
   image: string;
   quantity: number;
-  stock: number;
+  stock?: number;
 }
 
 interface CartContextType {
@@ -17,10 +17,10 @@ interface CartContextType {
   addToCart: (product: {
     id: string;
     title: string;
-    price: number | string;
+    price?: number | string | null;
     discountPrice?: number | string | null;
     images?: string[];
-    stock: number;
+    stock?: number;
   }) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -72,19 +72,22 @@ export function CartProvider({
   const addToCart = (product: {
     id: string;
     title: string;
-    price: number | string;
+    price?: number | string | null;
     discountPrice?: number | string | null;
     images?: string[];
-    stock: number;
+    stock?: number;
   }) => {
-    const unitPrice = product.discountPrice ? Number(product.discountPrice) : Number(product.price);
+    const stock = product.stock ?? 0;
+    const unitPrice = product.discountPrice !== null && product.discountPrice !== undefined
+      ? Number(product.discountPrice)
+      : Number(product.price);
     const image = product.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600';
 
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) {
-          alert(`Cannot add more. Only ${product.stock} items in stock.`);
+        if (existing.quantity >= stock) {
+          alert(`Cannot add more. Only ${stock} items in stock.`);
           return prev;
         }
         return prev.map((item) =>
@@ -100,7 +103,7 @@ export function CartProvider({
           discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
           image,
           quantity: 1,
-          stock: product.stock,
+          stock,
         },
       ];
     });

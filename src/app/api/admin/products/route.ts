@@ -67,13 +67,30 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, price, discountPrice, stock, images, categoryId, isActive } = body;
+    const {
+      title,
+      sku,
+      brand,
+      description,
+      price,
+      discountPrice,
+      stock,
+      images,
+      variants,
+      specifications,
+      attributes,
+      categoryId,
+      isActive,
+    } = body;
 
-    if (!title || price === undefined || price === null) {
+    if (!title) {
       return NextResponse.json(
-        { error: 'Product title and price are required' },
+        { error: 'Product title is required' },
         { status: 400 }
       );
+    }
+    if (price !== undefined && price !== null && (!Number.isFinite(Number(price)) || Number(price) < 0)) {
+      return NextResponse.json({ error: 'Price must be empty or a non-negative number' }, { status: 400 });
     }
 
     // Process images (filter out blanks)
@@ -86,11 +103,16 @@ export async function POST(req: NextRequest) {
         storeId: store.id,
         categoryId: categoryId || null,
         title: title.trim(),
+        sku: sku?.trim() || null,
+        brand: brand?.trim() || null,
         description: description?.trim() || null,
-        price: parseFloat(price),
+        price: price === undefined || price === null || price === '' ? null : parseFloat(price),
         discountPrice: discountPrice && parseFloat(discountPrice) > 0 ? parseFloat(discountPrice) : null,
         stock: parseInt(stock, 10) || 0,
         images: imagesArray.length > 0 ? imagesArray : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80'],
+        variants: variants ?? null,
+        specifications: specifications ?? null,
+        attributes: attributes ?? null,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
       },
       include: {

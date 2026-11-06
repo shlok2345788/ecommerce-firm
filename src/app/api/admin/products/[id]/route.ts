@@ -56,10 +56,26 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { title, description, price, discountPrice, stock, images, categoryId, isActive } = body;
+    const {
+      title,
+      sku,
+      brand,
+      description,
+      price,
+      discountPrice,
+      stock,
+      images,
+      variants,
+      specifications,
+      attributes,
+      categoryId,
+      isActive,
+    } = body;
 
     const dataToUpdate: any = {};
     if (title !== undefined) dataToUpdate.title = title.trim();
+    if (sku !== undefined) dataToUpdate.sku = sku?.trim() || null;
+    if (brand !== undefined) dataToUpdate.brand = brand?.trim() || null;
     if (description !== undefined) dataToUpdate.description = description?.trim() || null;
     if (price !== undefined) dataToUpdate.price = parseFloat(price);
     if (discountPrice !== undefined) {
@@ -73,6 +89,9 @@ export async function PUT(
     }
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
     if (isActive !== undefined) dataToUpdate.isActive = Boolean(isActive);
+    if (variants !== undefined) dataToUpdate.variants = variants;
+    if (specifications !== undefined) dataToUpdate.specifications = specifications;
+    if (attributes !== undefined) dataToUpdate.attributes = attributes;
 
     const updatedProduct = await prisma.product.update({
       where: { id },
