@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadImage } from '@/lib/imageStorage';
 import { slugify } from '@/lib/utils';
+import { getEffectiveProductFields } from '@/lib/productFields';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -107,7 +108,8 @@ function parseRows(buffer: Buffer, mapping?: Record<string, string>) {
     const errors: string[] = [];
     const warnings: string[] = [];
     if (!title) errors.push('Product name is required');
-    if (price === null || price < 0) errors.push('A valid non-negative price is required');
+    if (price !== null && price < 0) errors.push('Price must be a non-negative number');
+    if (price === null) warnings.push('Price is missing; product will be enquiry-only unless configured otherwise');
     if (discountPrice !== null && (discountPrice < 0 || (price !== null && discountPrice > price))) {
       errors.push('Sale price must be between zero and the regular price');
     }
@@ -269,6 +271,10 @@ export async function POST(req: NextRequest) {
         errors.push({ row: row.rowNumber, message: row.errors.join('; ') });
         continue;
       }
+      if (!row.category?.trim()) {
+        errors.push({ row: row.rowNumber, message: 'A category must be assigned before importing' });
+        continue;
+      }
       try {
         const category = row.category
           ? await prisma.category.upsert({
@@ -277,6 +283,31 @@ export async function POST(req: NextRequest) {
               create: { storeId: store.id, name: row.category, slug: slugify(row.category) },
             })
           : null;
+        const configuredFields = category
+          ? await getEffectiveProductFields(store.id, category.id)
+          : [];
+        const values: Record<string, unknown> = {
+          title: row.title,
+          sku: row.sku,
+          brand: row.brand,
+          description: row.description,
+          price: row.price,
+          discountPrice: row.discountPrice,
+          stock: row.stock,
+          images: row.images,
+          variants: row.variants,
+          specifications: row.specifications,
+          ...(row.attributes || {}),
+        };
+        const missingField = configuredFields.find((field) => {
+          if (!field.required) return false;
+          const value = values[field.key];
+          return value === undefined || value === null || value === '';
+        });
+        if (missingField) {
+          errors.push({ row: row.rowNumber, message: `${missingField.label} is required for ${category?.name}` });
+          continue;
+        }
         const data = {
           storeId: store.id,
           title: row.title.trim(),

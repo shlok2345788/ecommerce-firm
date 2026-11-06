@@ -228,7 +228,7 @@ export default function AdminCategoriesPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-medium text-zinc-700">URL Slug</label>
+                <label className="font-medium text-zinc-700">URL</label>
                 <Input
                   required
                   value={slug}

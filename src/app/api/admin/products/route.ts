@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getEffectiveProductFields } from '@/lib/productFields';
 
 export async function GET(req: NextRequest) {
   try {
@@ -83,13 +84,21 @@ export async function POST(req: NextRequest) {
       isActive,
     } = body;
 
-    if (!title) {
-      return NextResponse.json(
-        { error: 'Product title is required' },
-        { status: 400 }
-      );
+    const configuredFields = await getEffectiveProductFields(store.id, categoryId || null);
+    const requiredFields = configuredFields.filter((field) => field.required);
+    const values: Record<string, unknown> = {
+      title, sku, brand, description, price, discountPrice, stock, images,
+      variants, specifications, ...(attributes && typeof attributes === 'object' ? attributes : {}),
+    };
+    const missingField = requiredFields.find((field) => {
+      const value = values[field.key];
+      return value === undefined || value === null || value === '' ||
+        (Array.isArray(value) && value.length === 0);
+    });
+    if (missingField) {
+      return NextResponse.json({ error: `${missingField.label} is required` }, { status: 400 });
     }
-    if (price !== undefined && price !== null && (!Number.isFinite(Number(price)) || Number(price) < 0)) {
+    if (price !== undefined && price !== null && price !== '' && (!Number.isFinite(Number(price)) || Number(price) < 0)) {
       return NextResponse.json({ error: 'Price must be empty or a non-negative number' }, { status: 400 });
     }
 
@@ -107,7 +116,7 @@ export async function POST(req: NextRequest) {
         brand: brand?.trim() || null,
         description: description?.trim() || null,
         price: price === undefined || price === null || price === '' ? null : parseFloat(price),
-        discountPrice: discountPrice && parseFloat(discountPrice) > 0 ? parseFloat(discountPrice) : null,
+        discountPrice: discountPrice === undefined || discountPrice === null || discountPrice === '' ? null : parseFloat(discountPrice),
         stock: parseInt(stock, 10) || 0,
         images: imagesArray.length > 0 ? imagesArray : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80'],
         variants: variants ?? null,

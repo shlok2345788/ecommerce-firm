@@ -17,6 +17,7 @@ import {
   Users,
   FileSpreadsheet,
   SlidersHorizontal,
+  Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -33,10 +34,12 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+      closeMobile();
       router.push('/login');
     } catch (e) {
       router.push('/login');
@@ -62,8 +65,24 @@ export default function AdminSidebar({
     { label: 'Store Settings', href: '/admin/store-settings', icon: Sliders },
   ];
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
-    <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col min-h-screen shrink-0">
+    <>
+      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-4 md:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white"><Store className="h-4 w-4" /></div>
+          <span className="truncate text-sm font-semibold">{storeName}</span>
+        </div>
+        <button type="button" aria-label="Open navigation" onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-zinc-600 hover:bg-zinc-100">
+          <Menu className="h-5 w-5" />
+        </button>
+      </div>
+      {mobileOpen && <button type="button" aria-label="Close navigation" onClick={closeMobile} className="fixed inset-0 z-40 bg-zinc-900/30 md:hidden" />}
+      <aside className={cn(
+        'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-zinc-200 bg-white transition-transform duration-200 md:static md:z-auto md:w-64 md:translate-x-0 md:shrink-0',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      )}>
       {/* Store Identity Header */}
       <div className="p-4 border-b border-zinc-100">
         <div className="flex items-center gap-2.5 mb-3">
@@ -118,6 +137,7 @@ export default function AdminSidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={closeMobile}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
@@ -148,6 +168,7 @@ export default function AdminSidebar({
           <LogOut className="w-3.5 h-3.5 mr-2" /> Sign Out
         </Button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

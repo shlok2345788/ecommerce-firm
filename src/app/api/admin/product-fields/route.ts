@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import { ensureDefaultProductFields } from '@/lib/productFields';
 
 async function getAdminStore() {
   const user = await getCurrentUser();
@@ -14,7 +13,6 @@ export async function GET() {
   try {
     const store = await getAdminStore();
     if (!store) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    await ensureDefaultProductFields(store.id);
     const [fields, categories, products] = await Promise.all([
       prisma.productFieldDefinition.findMany({
         where: { storeId: store.id },

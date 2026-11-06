@@ -65,7 +65,7 @@ export default function AdminLayout({
         storeSlug={storeData?.slug || ''}
         adminName={user?.name || 'Store Owner'}
       />
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto max-h-screen">
+      <main className="max-h-screen flex-1 overflow-y-auto px-4 pb-6 pt-20 md:p-8">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>

@@ -24,6 +24,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [fieldDefinitions, setFieldDefinitions] = useState<any[]>([]);
+  const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -83,15 +85,18 @@ export default function AdminProductsPage() {
 
   const fetchData = async () => {
     try {
-      const [pRes, cRes] = await Promise.all([
+      const [pRes, cRes, fRes] = await Promise.all([
         fetch('/api/admin/products'),
         fetch('/api/admin/categories'),
+        fetch('/api/admin/product-fields'),
       ]);
       const pData = await pRes.json();
       const cData = await cRes.json();
+      const fData = await fRes.json();
 
       setProducts(pData.products || []);
       setCategories(cData.categories || []);
+      setFieldDefinitions(fData.fields || []);
     } catch (e) {
       console.error('Failed to load products/categories', e);
     } finally {
@@ -115,6 +120,7 @@ export default function AdminProductsPage() {
     setIsActive(true);
     setFormError(null);
     setUploadError(null);
+    setCustomValues({});
     setIsModalOpen(true);
   };
 
@@ -122,7 +128,7 @@ export default function AdminProductsPage() {
     setEditingProduct(prod);
     setTitle(prod.title);
     setDescription(prod.description || '');
-    setPrice(prod.price.toString());
+    setPrice(prod.price === null || prod.price === undefined ? '' : prod.price.toString());
     setDiscountPrice(prod.discountPrice ? prod.discountPrice.toString() : '');
     setStock(prod.stock.toString());
     setCategoryId(prod.categoryId || '');
@@ -130,8 +136,16 @@ export default function AdminProductsPage() {
     setIsActive(prod.isActive);
     setFormError(null);
     setUploadError(null);
+    setCustomValues((prod.attributes || {}) as Record<string, unknown>);
     setIsModalOpen(true);
   };
+
+  const activeFields = fieldDefinitions.filter((field) =>
+    field.isActive && (!field.categoryId || !categoryId || field.categoryId === categoryId)
+  );
+  const hasField = (key: string) => activeFields.some((field) => field.key === key);
+  const isRequired = (key: string) => activeFields.find((field) => field.key === key)?.required === true;
+  const fieldLabel = (key: string, fallback: string) => activeFields.find((field) => field.key === key)?.label || fallback;
 
   const handleImageChange = (index: number, val: string) => {
     const updated = [...images];
@@ -156,12 +170,15 @@ export default function AdminProductsPage() {
       const cleanedImages = images.map((i) => i.trim()).filter(Boolean);
       const payload = {
         title,
-        description,
-        price: parseFloat(price),
-        discountPrice: discountPrice ? parseFloat(discountPrice) : null,
-        stock: parseInt(stock, 10),
-        categoryId: categoryId || null,
-        images: cleanedImages,
+        ...(hasField('description') ? { description } : {}),
+        ...(hasField('price') ? { price: price === '' ? null : parseFloat(price) } : {}),
+        ...(hasField('discountPrice') ? { discountPrice: discountPrice ? parseFloat(discountPrice) : null } : {}),
+        ...(hasField('stock') ? { stock: parseInt(stock, 10) || 0 } : {}),
+        ...(hasField('category') ? { categoryId: categoryId || null } : {}),
+        ...(hasField('images') ? { images: cleanedImages } : {}),
+        brand: hasField('brand') ? String(customValues.brand || '') : undefined,
+        sku: hasField('sku') ? String(customValues.sku || '') : undefined,
+        attributes: customValues,
         isActive,
       };
 
@@ -423,9 +440,9 @@ export default function AdminProductsPage() {
 
             <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
               <div className="space-y-1">
-                <label className="font-medium text-zinc-700">Product Title *</label>
+                <label className="font-medium text-zinc-700">{fieldLabel('title', 'Product Title')}{isRequired('title') ? ' *' : ''}</label>
                 <Input
-                  required
+                  required={isRequired('title')}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Minimalist Ceramic Vessel"
@@ -434,8 +451,9 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                {hasField('category') && (
                 <div className="space-y-1">
-                  <label className="font-medium text-zinc-700">Category</label>
+                  <label className="font-medium text-zinc-700">{fieldLabel('category', 'Category')}{isRequired('category') ? ' *' : ''}</label>
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
@@ -449,62 +467,87 @@ export default function AdminProductsPage() {
                     ))}
                   </select>
                 </div>
+                )}
 
-                <div className="space-y-1">
-                  <label className="font-medium text-zinc-700">Stock Units *</label>
+                {hasField('stock') && <div className="space-y-1">
+                  <label className="font-medium text-zinc-700">{fieldLabel('stock', 'Stock Units')}{isRequired('stock') ? ' *' : ''}</label>
                   <Input
                     type="number"
-                    required
+                    required={isRequired('stock')}
                     min={0}
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
                     className="text-xs h-8"
                   />
-                </div>
+                </div>}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-medium text-zinc-700">Regular Price (₹) *</label>
+              {hasField('price') || hasField('discountPrice') ? <div className="grid grid-cols-2 gap-3">
+                {hasField('price') && <div className="space-y-1">
+                  <label className="font-medium text-zinc-700">{fieldLabel('price', 'Regular Price (₹)')}{isRequired('price') ? ' *' : ''}</label>
                   <Input
                     type="number"
                     step="0.01"
                     min={0}
-                    required
+                    required={isRequired('price')}
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    placeholder="999.00"
+                    placeholder="Optional"
                     className="text-xs h-8"
                   />
-                </div>
+                </div>}
 
-                <div className="space-y-1">
-                  <label className="font-medium text-zinc-700">Discount Price (₹) (Optional)</label>
+                {hasField('discountPrice') && <div className="space-y-1">
+                  <label className="font-medium text-zinc-700">{fieldLabel('discountPrice', 'Discount Price (₹)')}{isRequired('discountPrice') ? ' *' : ' (Optional)'}</label>
                   <Input
                     type="number"
                     step="0.01"
                     min={0}
                     value={discountPrice}
                     onChange={(e) => setDiscountPrice(e.target.value)}
-                    placeholder="Leave blank if none"
+                    required={isRequired('discountPrice')}
+                    placeholder="Optional"
                     className="text-xs h-8"
                   />
-                </div>
-              </div>
+                </div>}
+              </div> : null}
 
-              <div className="space-y-1">
-                <label className="font-medium text-zinc-700">Description</label>
+              {hasField('description') && <div className="space-y-1">
+                <label className="font-medium text-zinc-700">{fieldLabel('description', 'Description')}{isRequired('description') ? ' *' : ''}</label>
                 <textarea
+                  required={isRequired('description')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Materials, specifications, dimensions, or styling notes..."
                   className="w-full p-2.5 rounded-md border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-950"
                   rows={3}
                 />
-              </div>
+              </div>}
+
+              {activeFields.filter((field) => !['title', 'category', 'stock', 'price', 'discountPrice', 'description', 'images', 'sku', 'brand'].includes(field.key)).map((field) => (
+                <div key={field.id} className="space-y-1">
+                  <label className="font-medium text-zinc-700">{field.label}{field.required ? ' *' : ''}</label>
+                  <Input
+                    required={field.required}
+                    type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                    value={String(customValues[field.key] ?? '')}
+                    onChange={(event) => setCustomValues((current) => ({ ...current, [field.key]: event.target.value }))}
+                    className="text-xs h-8"
+                  />
+                </div>
+              ))}
+
+              {hasField('sku') && <div className="space-y-1">
+                <label className="font-medium text-zinc-700">{fieldLabel('sku', 'SKU')}{isRequired('sku') ? ' *' : ''}</label>
+                <Input required={isRequired('sku')} value={String(customValues.sku ?? '')} onChange={(event) => setCustomValues((current) => ({ ...current, sku: event.target.value }))} className="text-xs h-8" />
+              </div>}
+              {hasField('brand') && <div className="space-y-1">
+                <label className="font-medium text-zinc-700">{fieldLabel('brand', 'Brand')}{isRequired('brand') ? ' *' : ''}</label>
+                <Input required={isRequired('brand')} value={String(customValues.brand ?? '')} onChange={(event) => setCustomValues((current) => ({ ...current, brand: event.target.value }))} className="text-xs h-8" />
+              </div>}
 
               {/* Product Images: File Upload & URLs */}
-              <div className="space-y-2">
+              {hasField('images') && <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-medium text-zinc-700">Product Images</label>
                   <span className="text-[11px] text-zinc-400">Upload files or enter URLs</span>
@@ -644,7 +687,7 @@ export default function AdminProductsPage() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </div>}
 
               <div className="flex items-center gap-2 pt-2">
                 <input
