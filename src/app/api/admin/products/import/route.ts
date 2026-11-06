@@ -300,7 +300,7 @@ export async function POST(req: NextRequest) {
           ...(row.attributes || {}),
         };
         const missingField = configuredFields.find((field) => {
-          if (!field.required) return false;
+          if (!field.required || field.customerVisibility === 'HIDDEN') return false;
           const value = values[field.key];
           return value === undefined || value === null || value === '';
         });

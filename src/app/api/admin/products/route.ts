@@ -85,7 +85,9 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const configuredFields = await getEffectiveProductFields(store.id, categoryId || null);
-    const requiredFields = configuredFields.filter((field) => field.required);
+    const requiredFields = configuredFields.filter((field) =>
+      field.required && field.customerVisibility !== 'HIDDEN'
+    );
     const values: Record<string, unknown> = {
       title, sku, brand, description, price, discountPrice, stock, images,
       variants, specifications, ...(attributes && typeof attributes === 'object' ? attributes : {}),

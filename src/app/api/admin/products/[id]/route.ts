@@ -91,7 +91,9 @@ export async function PUT(
       ...(existingProduct.attributes as Record<string, unknown> || {}),
       ...(attributes && typeof attributes === 'object' ? attributes : {}),
     };
-    const missingField = configuredFields.filter((field) => field.required).find((field) => {
+    const missingField = configuredFields
+      .filter((field) => field.required && field.customerVisibility !== 'HIDDEN')
+      .find((field) => {
       const value = nextValues[field.key];
       return value === undefined || value === null || value === '' ||
         (Array.isArray(value) && value.length === 0);

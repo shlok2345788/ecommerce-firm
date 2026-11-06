@@ -86,9 +86,9 @@ export default function AdminProductsPage() {
   const fetchData = async () => {
     try {
       const [pRes, cRes, fRes] = await Promise.all([
-        fetch('/api/admin/products'),
-        fetch('/api/admin/categories'),
-        fetch('/api/admin/product-fields'),
+        fetch('/api/admin/products', { cache: 'no-store' }),
+        fetch('/api/admin/categories', { cache: 'no-store' }),
+        fetch('/api/admin/product-fields', { cache: 'no-store' }),
       ]);
       const pData = await pRes.json();
       const cData = await cRes.json();
@@ -108,7 +108,21 @@ export default function AdminProductsPage() {
     fetchData();
   }, []);
 
-  const openCreateModal = () => {
+  const refreshFieldDefinitions = async () => {
+    const response = await fetch('/api/admin/product-fields', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Failed to load product field configuration');
+    const data = await response.json();
+    setFieldDefinitions(data.fields || []);
+    return data.fields || [];
+  };
+
+  const openCreateModal = async () => {
+    try {
+      await refreshFieldDefinitions();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Failed to load product fields');
+      return;
+    }
     setEditingProduct(null);
     setTitle('');
     setDescription('');
@@ -124,7 +138,13 @@ export default function AdminProductsPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (prod: any) => {
+  const openEditModal = async (prod: any) => {
+    try {
+      await refreshFieldDefinitions();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Failed to load product fields');
+      return;
+    }
     setEditingProduct(prod);
     setTitle(prod.title);
     setDescription(prod.description || '');
@@ -141,7 +161,9 @@ export default function AdminProductsPage() {
   };
 
   const activeFields = fieldDefinitions.filter((field) =>
-    field.isActive && (!field.categoryId || !categoryId || field.categoryId === categoryId)
+    field.isActive &&
+    field.customerVisibility !== 'HIDDEN' &&
+    (!field.categoryId ? true : field.categoryId === categoryId)
   );
   const hasField = (key: string) => activeFields.some((field) => field.key === key);
   const isRequired = (key: string) => activeFields.find((field) => field.key === key)?.required === true;
