@@ -6,11 +6,27 @@ import CartDrawer from '@/components/CartDrawer';
 import StoreHeader from '@/components/StoreHeader';
 import StoreFooter from '@/components/StoreFooter';
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const store = await prisma.store.findUnique({
-    where: { slug: params.slug },
-    select: { name: true, description: true },
+async function getStore(slug: string) {
+  const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '');
+  if (!backendUrl) {
+    return prisma.store.findUnique({ where: { slug } });
+  }
+
+  const response = await fetch(`${backendUrl}/api/store/${encodeURIComponent(slug)}`, {
+    cache: 'no-store',
   });
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`Failed to load storefront metadata (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.store;
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const store = await getStore(params.slug);
 
   if (!store) return { title: 'Store Not Found' };
 
@@ -28,10 +44,7 @@ export default async function StoreLayout({
   params: { slug: string };
 }) {
   const { slug } = params;
-
-  const store = await prisma.store.findUnique({
-    where: { slug },
-  });
+  const store = await getStore(slug);
 
   if (!store) {
     notFound();
