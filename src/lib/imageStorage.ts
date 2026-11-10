@@ -1,4 +1,5 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { put } from '@vercel/blob';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
@@ -76,6 +77,22 @@ export async function uploadImage(file: File): Promise<string> {
     const publicBaseUrl = (b2.publicUrl || `${b2.endpoint}/${b2.bucketName}`)
       .replace(/\/+$/, '');
     return `${publicBaseUrl}/products/${encodeURIComponent(fileName)}`;
+  }
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`products/${fileName}`, buffer, {
+      access: 'public',
+      contentType: file.type,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+
+    return blob.url;
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error(
+      'Persistent image storage is not configured. Set BLOB_READ_WRITE_TOKEN or the B2 storage variables.'
+    );
   }
 
   const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
