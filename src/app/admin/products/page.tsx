@@ -58,9 +58,13 @@ export default function AdminProductsPage() {
     setUploadError(null);
 
     try {
-      const oversizedFile = Array.from(files).find((file) => file.size > 4 * 1024 * 1024);
+      const selectedFiles = Array.from(files);
+      const oversizedFile = selectedFiles.find((file) => file.size > 4 * 1024 * 1024);
       if (oversizedFile) {
         throw new Error(`"${oversizedFile.name}" is larger than 4 MB`);
+      }
+      if (selectedFiles.reduce((total, file) => total + file.size, 0) > 4 * 1024 * 1024) {
+        throw new Error('The selected images exceed Vercel’s 4 MB upload limit. Upload fewer images at a time.');
       }
 
       const formData = new FormData();

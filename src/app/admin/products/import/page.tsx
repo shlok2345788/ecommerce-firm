@@ -38,6 +38,20 @@ type ImportRow = {
 type Category = { id: string; name: string; slug: string };
 
 const fields = ['title', 'sku', 'brand', 'description', 'price', 'discountPrice', 'category', 'stock', 'variants', 'specifications', 'images'];
+const MAX_IMPORT_REQUEST_SIZE = 4 * 1024 * 1024;
+
+async function readImportResponse(response: Response) {
+  const responseText = await response.text();
+  try {
+    return JSON.parse(responseText) as Record<string, any>;
+  } catch {
+    throw new Error(
+      response.status === 413
+        ? 'Import is too large for Vercel. Keep the spreadsheet and images below 4 MB total.'
+        : `Import failed (${response.status})`
+    );
+  }
+}
 
 export default function ProductImportPage() {
   const spreadsheetRef = useRef<HTMLInputElement>(null);
@@ -139,8 +153,11 @@ export default function ProductImportPage() {
       data.append('action', 'preview');
       data.append('mapping', JSON.stringify(mapping));
       images.forEach((image) => data.append('images', image));
+      if (spreadsheet.size + images.reduce((total, image) => total + image.size, 0) > MAX_IMPORT_REQUEST_SIZE) {
+        throw new Error('Import is too large for Vercel. Keep the spreadsheet and images below 4 MB total.');
+      }
       const response = await fetch('/api/admin/products/import', { method: 'POST', body: data });
-      const result = await response.json();
+      const result = await readImportResponse(response);
       if (!response.ok) throw new Error(result.error || 'Could not preview import');
       setRows(result.rows || []);
       setUnmatched(result.unmatchedImages || []);
@@ -203,8 +220,11 @@ export default function ProductImportPage() {
       data.append('action', 'import');
       data.append('rows', JSON.stringify(assignedRows));
       images.forEach((image) => data.append('images', image));
+      if (spreadsheet.size + images.reduce((total, image) => total + image.size, 0) > MAX_IMPORT_REQUEST_SIZE) {
+        throw new Error('Import is too large for Vercel. Keep the spreadsheet and images below 4 MB total.');
+      }
       const response = await fetch('/api/admin/products/import', { method: 'POST', body: data });
-      const result = await response.json();
+      const result = await readImportResponse(response);
       if (!response.ok) throw new Error(result.error || 'Import failed');
       setMessage(`Imported ${result.successfulProducts} products. ${result.errors?.length || 0} rows failed.`);
       setHistory((current) => [{
