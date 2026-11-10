@@ -8,3 +8,6 @@ persistent storage providers before deploying to Vercel.
 The deployed app uses its built-in API routes by default. Set
 `USE_EXTERNAL_API=true` only when intentionally routing API requests to
 `BACKEND_URL`.
+
+Database connections use `DATABASE_URL`, with `POSTGRES_PRISMA_URL` and
+`POSTGRES_URL` as runtime fallbacks for Vercel Postgres integrations.
