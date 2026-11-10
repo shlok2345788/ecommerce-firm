@@ -11,3 +11,9 @@ The deployed app uses its built-in API routes by default. Set
 
 Database connections use `DATABASE_URL`, with `POSTGRES_PRISMA_URL` and
 `POSTGRES_URL` as runtime fallbacks for Vercel Postgres integrations.
+
+Before the first production login, initialize the configured production
+database from the repository root with `npm run db:deploy`, then run
+`npm run db:seed` once to create the initial Superadmin account. The seed
+script also removes its listed legacy demo records, so do not run it again
+against a database containing data you need to preserve.
