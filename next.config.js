@@ -14,7 +14,10 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '');
+    const backendUrl =
+      process.env.USE_EXTERNAL_API === 'true'
+        ? process.env.BACKEND_URL?.replace(/\/$/, '')
+        : undefined;
 
     return backendUrl
       ? {
