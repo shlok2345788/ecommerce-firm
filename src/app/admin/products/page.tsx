@@ -58,6 +58,11 @@ export default function AdminProductsPage() {
     setUploadError(null);
 
     try {
+      const oversizedFile = Array.from(files).find((file) => file.size > 4 * 1024 * 1024);
+      if (oversizedFile) {
+        throw new Error(`"${oversizedFile.name}" is larger than 4 MB`);
+      }
+
       const formData = new FormData();
       for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
@@ -68,7 +73,17 @@ export default function AdminProductsPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: { error?: string; urls?: string[]; url?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          res.status === 413
+            ? 'Image upload is too large. Each image must be 4 MB or smaller.'
+            : `Image upload failed (${res.status})`
+        );
+      }
       if (!res.ok) {
         throw new Error(data.error || 'Failed to upload image');
       }
@@ -619,7 +634,7 @@ export default function AdminProductsPage() {
                         Click to upload images <span className="font-normal text-zinc-500">or drag & drop</span>
                       </p>
                       <p className="text-[10px] text-zinc-400 mt-0.5">
-                        PNG, JPG, WEBP, GIF up to 5MB (Multiple uploads supported)
+                        PNG, JPG, WEBP, GIF up to 4MB (Multiple uploads supported)
                       </p>
                     </div>
                   )}

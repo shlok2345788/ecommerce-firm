@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
 
 function getB2Config() {
   const values = {
