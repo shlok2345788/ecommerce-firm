@@ -48,7 +48,7 @@ export async function uploadImage(file: File): Promise<string> {
   }
 
   if (file.size > MAX_IMAGE_SIZE) {
-    throw new Error('Images must be 10 MB or smaller');
+    throw new Error('Images must be 4 MB or smaller');
   }
 
   const fileName = getSafeFileName(file.name);

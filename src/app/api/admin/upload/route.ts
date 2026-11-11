@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadImage } from '@/lib/imageStorage';
 
+const MAX_UPLOAD_BATCH_SIZE = 3.5 * 1024 * 1024;
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -23,14 +25,17 @@ export async function POST(req: NextRequest) {
     if (allFiles.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
-
-    const uploadedUrls: string[] = [];
-
-    for (const file of allFiles) {
-      uploadedUrls.push(await uploadImage(file));
+    if (allFiles.reduce((total, file) => total + file.size, 0) > MAX_UPLOAD_BATCH_SIZE) {
+      return NextResponse.json({ error: 'Upload fewer images per batch. Each batch must be below 3.5 MB.' }, { status: 413 });
     }
 
-    if (uploadedUrls.length === 0) {
+    const uploadedFiles: Array<{ name: string; url: string }> = [];
+
+    for (const file of allFiles) {
+      uploadedFiles.push({ name: file.name, url: await uploadImage(file) });
+    }
+
+    if (uploadedFiles.length === 0) {
       return NextResponse.json(
         { error: 'No image files were provided' },
         { status: 400 }
@@ -39,8 +44,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      url: uploadedUrls[0],
-      urls: uploadedUrls,
+      url: uploadedFiles[0].url,
+      urls: uploadedFiles.map((file) => file.url),
+      files: uploadedFiles,
     });
   } catch (error) {
     console.error('Image upload error:', error);

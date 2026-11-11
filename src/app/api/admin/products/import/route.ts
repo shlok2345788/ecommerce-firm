@@ -29,6 +29,8 @@ type ImportRow = {
   status: 'READY' | 'MISSING_IMAGE' | 'INVALID';
 };
 
+type UploadedImage = { name: string; url: string };
+
 const aliases: Record<string, string[]> = {
   title: ['title', 'name', 'product', 'productname', 'producttitle'],
   sku: ['sku', 'code', 'productcode', 'itemcode'],
@@ -226,30 +228,32 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const action = stringValue(formData.get('action')) || 'preview';
     const spreadsheet = formData.get('spreadsheet');
-    if (!(spreadsheet instanceof File)) {
+    if (action === 'preview' && !(spreadsheet instanceof File)) {
       return NextResponse.json({ error: 'Upload an Excel or CSV file' }, { status: 400 });
     }
-    const extension = spreadsheet.name.toLowerCase().split('.').pop();
-    if (!['xlsx', 'xls', 'csv'].includes(extension || '')) {
-      return NextResponse.json({ error: 'Only .xlsx, .xls, and .csv files are supported' }, { status: 400 });
+    if (spreadsheet instanceof File) {
+      const extension = spreadsheet.name.toLowerCase().split('.').pop();
+      if (!['xlsx', 'xls', 'csv'].includes(extension || '')) {
+        return NextResponse.json({ error: 'Only .xlsx, .xls, and .csv files are supported' }, { status: 400 });
+      }
     }
 
-    const images = formData.getAll('images').filter((file): file is File => file instanceof File);
-    const uploadedImages = await Promise.all(images.map(async (file) => ({
-      name: file.name,
-      url: await uploadImage(file),
-    })));
+    let uploadedImages: UploadedImage[] = [];
+    const imageManifest = formData.get('imageManifest');
+    if (imageManifest) {
+      uploadedImages = JSON.parse(String(imageManifest)) as UploadedImage[];
+    }
     const mapping = formData.get('mapping');
-    const parsed = parseRows(
-      Buffer.from(await spreadsheet.arrayBuffer()),
-      mapping ? JSON.parse(String(mapping)) : undefined,
-    );
-    const rows = parsed.rows;
-    const unmatchedImages = matchImages(rows, uploadedImages);
 
     if (action === 'preview') {
+      const parsed = parseRows(
+        Buffer.from(await (spreadsheet as File).arrayBuffer()),
+        mapping ? JSON.parse(String(mapping)) : undefined,
+      );
+      const rows = parsed.rows;
+      const unmatchedImages = matchImages(rows, uploadedImages);
       return NextResponse.json({
-        fileName: spreadsheet.name,
+        fileName: (spreadsheet as File).name,
         columns: parsed.headers,
         rows,
         unmatchedImages,
@@ -340,7 +344,7 @@ export async function POST(req: NextRequest) {
     await prisma.importHistory.create({
       data: {
         storeId: store.id,
-        fileName: spreadsheet.name,
+        fileName: stringValue(formData.get('fileName')) || (spreadsheet instanceof File ? spreadsheet.name : 'product-import'),
         totalProducts: importRows.length,
         successfulProducts,
         failedProducts: errors.length,

@@ -36,9 +36,10 @@ type ImportRow = {
 };
 
 type Category = { id: string; name: string; slug: string };
+type UploadedImage = { name: string; url: string };
 
 const fields = ['title', 'sku', 'brand', 'description', 'price', 'discountPrice', 'category', 'stock', 'variants', 'specifications', 'images'];
-const MAX_IMPORT_REQUEST_SIZE = 4 * 1024 * 1024;
+const MAX_UPLOAD_BATCH_SIZE = 3.5 * 1024 * 1024;
 
 async function readImportResponse(response: Response) {
   const responseText = await response.text();
@@ -47,7 +48,7 @@ async function readImportResponse(response: Response) {
   } catch {
     throw new Error(
       response.status === 413
-        ? 'Import is too large for Vercel. Keep the spreadsheet and images below 4 MB total.'
+        ? 'Request is too large for Vercel. Use smaller spreadsheet rows or image batches.'
         : `Import failed (${response.status})`
     );
   }
@@ -58,6 +59,7 @@ export default function ProductImportPage() {
   const imageRef = useRef<HTMLInputElement>(null);
   const [spreadsheet, setSpreadsheet] = useState<File | null>(null);
   const [images, setImages] = useState<File[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -136,7 +138,41 @@ export default function ProductImportPage() {
   }, []);
 
   const chooseImages = (files: FileList | null) => {
-    if (files) setImages(Array.from(files));
+    if (files) {
+      setImages(Array.from(files));
+      setUploadedImages([]);
+    }
+  };
+
+  const uploadImages = async () => {
+    if (!images.length) return [];
+    const uploaded: UploadedImage[] = [];
+    let batch: File[] = [];
+    let batchSize = 0;
+    const batches: File[][] = [];
+    for (const image of images) {
+      if (image.size > MAX_UPLOAD_BATCH_SIZE) {
+        throw new Error(`"${image.name}" is too large. Images must be below 3.5 MB.`);
+      }
+      if (batch.length && batchSize + image.size > MAX_UPLOAD_BATCH_SIZE) {
+        batches.push(batch);
+        batch = [];
+        batchSize = 0;
+      }
+      batch.push(image);
+      batchSize += image.size;
+    }
+    if (batch.length) batches.push(batch);
+    for (const files of batches) {
+      const data = new FormData();
+      files.forEach((file) => data.append('files', file));
+      const response = await fetch('/api/admin/upload', { method: 'POST', body: data });
+      const result = await readImportResponse(response);
+      if (!response.ok) throw new Error(result.error || 'Could not upload images');
+      uploaded.push(...((result.files || []) as UploadedImage[]));
+    }
+    setUploadedImages(uploaded);
+    return uploaded;
   };
 
   const preview = async () => {
@@ -148,14 +184,12 @@ export default function ProductImportPage() {
     setError(null);
     setMessage(null);
     try {
+      const manifest = uploadedImages.length ? uploadedImages : await uploadImages();
       const data = new FormData();
       data.append('spreadsheet', spreadsheet);
       data.append('action', 'preview');
       data.append('mapping', JSON.stringify(mapping));
-      images.forEach((image) => data.append('images', image));
-      if (spreadsheet.size + images.reduce((total, image) => total + image.size, 0) > MAX_IMPORT_REQUEST_SIZE) {
-        throw new Error('Import is too large for Vercel. Keep the spreadsheet and images below 4 MB total.');
-      }
+      data.append('imageManifest', JSON.stringify(manifest));
       const response = await fetch('/api/admin/products/import', { method: 'POST', body: data });
       const result = await readImportResponse(response);
       if (!response.ok) throw new Error(result.error || 'Could not preview import');
@@ -216,13 +250,9 @@ export default function ProductImportPage() {
     setError(null);
     try {
       const data = new FormData();
-      data.append('spreadsheet', spreadsheet);
       data.append('action', 'import');
+      data.append('fileName', spreadsheet.name);
       data.append('rows', JSON.stringify(assignedRows));
-      images.forEach((image) => data.append('images', image));
-      if (spreadsheet.size + images.reduce((total, image) => total + image.size, 0) > MAX_IMPORT_REQUEST_SIZE) {
-        throw new Error('Import is too large for Vercel. Keep the spreadsheet and images below 4 MB total.');
-      }
       const response = await fetch('/api/admin/products/import', { method: 'POST', body: data });
       const result = await readImportResponse(response);
       if (!response.ok) throw new Error(result.error || 'Import failed');
@@ -346,7 +376,7 @@ export default function ProductImportPage() {
       <div className="flex flex-col gap-3 border-b border-zinc-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Bulk Product Import</h1>
-          <p className="mt-1 text-xs text-zinc-500">Import products, match thousands of images, and edit records before publishing.</p>
+          <p className="mt-1 text-xs text-zinc-500">Import up to 1,000 products while images upload in safe batches.</p>
         </div>
         <a href="/api/admin/products/import?template=1" download>
           <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" /> Excel template</Button>
@@ -365,7 +395,7 @@ export default function ProductImportPage() {
         <section className="rounded-xl border border-dashed border-zinc-300 bg-white p-5">
           <div className="flex items-center gap-3">
             <ImageIcon className="h-5 w-5 text-blue-600" />
-            <div><h2 className="text-sm font-semibold">2. Product images</h2><p className="text-xs text-zinc-500">Multiple files or a folder; names are matched safely</p></div>
+            <div><h2 className="text-sm font-semibold">2. Product images</h2><p className="text-xs text-zinc-500">Images upload in automatic batches; names are matched safely</p></div>
           </div>
           <input ref={imageRef} hidden type="file" accept="image/*" multiple onChange={(event) => chooseImages(event.target.files)} />
           <div className="mt-4 flex gap-2">
