@@ -26,7 +26,7 @@ export default function AdminLayout({
           return;
         }
 
-        if (meData.user.firstLogin) {
+        if (meData.user.firstLogin || meData.user.mustChangePassword) {
           router.push('/admin/first-login');
           return;
         }

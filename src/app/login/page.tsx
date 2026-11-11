@@ -133,6 +133,22 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
+        {/* Business Registration Links */}
+        <div className="mt-5 p-3.5 rounded-lg border border-zinc-200/80 bg-white/80 shadow-sm text-center space-y-1.5">
+          <p className="text-xs text-zinc-600">
+            Want to sell on OmniStore?{' '}
+            <Link href="/register" className="font-semibold text-zinc-950 underline hover:text-zinc-800">
+              Register Your Business
+            </Link>
+          </p>
+          <div className="text-[11px] text-zinc-400">
+            Already applied?{' '}
+            <Link href="/register/track" className="text-zinc-600 hover:text-zinc-900 underline">
+              Track Application Status
+            </Link>
+          </div>
+        </div>
+
         <div className="text-center mt-4">
           <Link
             href="/"

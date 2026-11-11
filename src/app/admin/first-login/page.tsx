@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { KeyRound, ArrowRight, AlertCircle, Loader2, CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { validatePasswordStrength } from '@/lib/registrationValidators';
 
 export default function FirstLoginPage() {
   const router = useRouter();
@@ -15,17 +16,19 @@ export default function FirstLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const strength = validatePasswordStrength(newPassword);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+    if (!strength.valid) {
+      setError(`Password requirements not met: ${strength.errors.join(', ')}`);
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
       return;
     }
 
@@ -55,12 +58,12 @@ export default function FirstLoginPage() {
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-zinc-200/90 shadow-sm">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto w-10 h-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center mb-3">
+          <div className="mx-auto w-10 h-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center mb-3 shadow-sm">
             <KeyRound className="w-5 h-5" />
           </div>
-          <CardTitle className="text-lg">First-Time Password Reset</CardTitle>
+          <CardTitle className="text-lg">First-Time Password Setup</CardTitle>
           <CardDescription className="text-xs">
-            As a newly provisioned store administrator, you must define a personal password before accessing your store console.
+            As a newly approved store administrator, you must define a confidential password before accessing your store console.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -74,21 +77,21 @@ export default function FirstLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-700">
-                Current Temporary Password
+                Temporary Password Received via Email
               </label>
               <Input
                 type="password"
                 required
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Password assigned by Superadmin"
+                placeholder="Temporary password from approval email"
                 className="text-xs"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-700">
-                New Personal Password
+                New Confidential Password
               </label>
               <Input
                 type="password"
@@ -96,9 +99,36 @@ export default function FirstLoginPage() {
                 minLength={8}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="Create a strong password"
                 className="text-xs"
               />
+
+              {/* Password Requirements Live Checklist */}
+              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-md mt-2 space-y-1.5 text-[11px]">
+                <p className="font-semibold text-zinc-600 mb-1">Password Requirements:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  <div className={`flex items-center gap-1.5 ${strength.rules.minLength ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                    {strength.rules.minLength ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Circle className="w-3.5 h-3.5 text-zinc-400" />}
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${strength.rules.hasUppercase ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                    {strength.rules.hasUppercase ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Circle className="w-3.5 h-3.5 text-zinc-400" />}
+                    <span>One uppercase letter</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${strength.rules.hasLowercase ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                    {strength.rules.hasLowercase ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Circle className="w-3.5 h-3.5 text-zinc-400" />}
+                    <span>One lowercase letter</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${strength.rules.hasNumber ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                    {strength.rules.hasNumber ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Circle className="w-3.5 h-3.5 text-zinc-400" />}
+                    <span>One number (0-9)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 sm:col-span-2 ${strength.rules.hasSpecial ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                    {strength.rules.hasSpecial ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Circle className="w-3.5 h-3.5 text-zinc-400" />}
+                    <span>One special character (!@#$%^&*)</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -114,17 +144,20 @@ export default function FirstLoginPage() {
                 placeholder="Re-enter new password"
                 className="text-xs"
               />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-[11px] text-red-600">Passwords do not match</p>
+              )}
             </div>
 
             <Button
               type="submit"
-              disabled={loading}
-              className="w-full text-xs font-medium pt-2"
+              disabled={loading || !strength.valid || newPassword !== confirmPassword}
+              className="w-full text-xs font-medium"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                  Updating Password...
+                  Activating Account...
                 </>
               ) : (
                 <>

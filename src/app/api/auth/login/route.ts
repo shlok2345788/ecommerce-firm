@@ -23,12 +23,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim() === 'superadmin'
+    const rawIdentifier = email.trim();
+    const normalizedEmail = rawIdentifier.toLowerCase() === 'superadmin'
       ? 'superadmin@platform.com'
-      : email.toLowerCase().trim();
+      : rawIdentifier.toLowerCase();
 
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail },
+          { email: rawIdentifier },
+          { loginId: rawIdentifier },
+          { phone: rawIdentifier },
+        ],
+      },
       include: {
         stores: {
           take: 1,
@@ -39,14 +47,22 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'Invalid email, username, or password' },
         { status: 401 }
       );
     }
 
     if (user.status !== 'ACTIVE') {
       return NextResponse.json(
-        { error: 'Your account has been deactivated. Please contact platform administration.' },
+        { error: 'Your account has been deactivated or suspended. Please contact platform administration.' },
+        { status: 403 }
+      );
+    }
+
+    const primaryStore = user.stores[0];
+    if (user.role === 'ADMIN' && primaryStore && primaryStore.status === 'SUSPENDED') {
+      return NextResponse.json(
+        { error: 'Your store account has been suspended by administration. Please contact compliance.' },
         { status: 403 }
       );
     }
@@ -54,18 +70,19 @@ export async function POST(req: NextRequest) {
     const isMatch = await comparePassword(password, user.passwordHash);
     if (!isMatch) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'Invalid email, username, or password' },
         { status: 401 }
       );
     }
 
-    const primaryStore = user.stores[0];
+    const mustChange = Boolean(user.firstLogin || user.mustChangePassword);
+
     const token = signToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
-      firstLogin: user.firstLogin,
+      firstLogin: mustChange,
       storeId: primaryStore?.id,
       storeSlug: primaryStore?.slug,
     });
@@ -76,8 +93,10 @@ export async function POST(req: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
+        loginId: user.loginId,
         role: user.role,
-        firstLogin: user.firstLogin,
+        firstLogin: mustChange,
+        mustChangePassword: mustChange,
         store: primaryStore,
       },
     });

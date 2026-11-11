@@ -58,14 +58,19 @@ export default function PlatformLandingPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link href="/register" className="inline-flex">
+              <Button variant="default" size="sm" className="bg-zinc-950 text-white hover:bg-zinc-800">
+                Register Store
+              </Button>
+            </Link>
             <Link href="/login" className="inline-flex">
               <Button variant="outline" size="sm">
                 Console Login
               </Button>
             </Link>
-            <Link href="/superadmin" className="inline-flex">
-              <Button size="sm">
-                Superadmin Portal <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+            <Link href="/superadmin" className="hidden sm:inline-flex">
+              <Button variant="ghost" size="sm">
+                Superadmin
               </Button>
             </Link>
           </div>
@@ -84,20 +89,25 @@ export default function PlatformLandingPage() {
         </h1>
 
         <p className="text-base sm:text-lg text-zinc-600 max-w-2xl mx-auto mb-8 leading-relaxed">
-          Row-level PostgreSQL multi-tenancy connecting Superadmin governance, isolated store owner management consoles, and guest checkout storefronts with Cash on Delivery and WhatsApp fulfillment.
+          Row-level PostgreSQL multi-tenancy connecting Superadmin governance, verified business store onboarding with administrative approval, and isolated merchant storefronts with Cash on Delivery and WhatsApp fulfillment.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/login" className="inline-flex">
-            <Button size="lg" className="font-medium">
-              Access Management Console <ArrowRight className="w-4 h-4 ml-2" />
+          <Link href="/register" className="inline-flex">
+            <Button size="lg" className="font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+              Register Your Business <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
-          <a href="#stores" className="inline-flex">
+          <Link href="/register/track" className="inline-flex">
             <Button variant="outline" size="lg" className="font-medium">
-              Explore Live Storefronts
+              Track Application
             </Button>
-          </a>
+          </Link>
+          <Link href="/login" className="inline-flex">
+            <Button variant="ghost" size="lg" className="font-medium text-zinc-700">
+              Access Console
+            </Button>
+          </Link>
         </div>
       </section>
 

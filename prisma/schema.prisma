@@ -23,6 +23,15 @@ enum StoreStatus {
   SUSPENDED
 }
 
+enum RegistrationStatus {
+  PENDING
+  UNDER_REVIEW
+  ADDITIONAL_INFO_REQUIRED
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -32,41 +41,130 @@ enum OrderStatus {
 }
 
 model User {
-  id                String        @id @default(uuid())
-  name              String
-  email             String        @unique
-  phone             String?
-  passwordHash      String
-  role              Role          @default(ADMIN)
-  status            AccountStatus @default(ACTIVE)
-  firstLogin        Boolean       @default(true)
-  registeredStoreId String?
-  registeredStore   Store?        @relation("StoreRegisteredCustomers", fields: [registeredStoreId], references: [id], onDelete: SetNull)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  stores            Store[]       @relation("StoreAdmin")
-  customerOrders    Order[]       @relation("CustomerOrders")
+  id                 String              @id @default(uuid())
+  name               String
+  email              String              @unique
+  loginId            String?             @unique
+  phone              String?
+  passwordHash       String
+  role               Role                @default(ADMIN)
+  status             AccountStatus       @default(ACTIVE)
+  firstLogin         Boolean             @default(true)
+  mustChangePassword Boolean             @default(true)
+  registeredStoreId  String?
+  registeredStore    Store?              @relation("StoreRegisteredCustomers", fields: [registeredStoreId], references: [id], onDelete: SetNull)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  stores             Store[]             @relation("StoreAdmin")
+  customerOrders     Order[]             @relation("CustomerOrders")
+  storeRegistrations StoreRegistration[]
+  storeAccount       StoreAccount?
 }
 
 model Store {
-  id          String      @id @default(uuid())
-  adminId     String
-  admin       User        @relation("StoreAdmin", fields: [adminId], references: [id], onDelete: Cascade)
-  name        String
-  slug        String      @unique
-  logoUrl     String?
-  description String?
-  phone       String
-  address     String?
-  status      StoreStatus @default(ACTIVE)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  categories  Category[]
-  products    Product[]
-  orders      Order[]
-  customers   User[]      @relation("StoreRegisteredCustomers")
-  importHistory ImportHistory[]
-  fieldDefinitions ProductFieldDefinition[]
+  id                 String              @id @default(uuid())
+  adminId            String
+  admin              User                @relation("StoreAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  name               String
+  slug               String              @unique
+  logoUrl            String?
+  description        String?
+  phone              String
+  address            String?
+  status             StoreStatus         @default(ACTIVE)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  categories         Category[]
+  products           Product[]
+  orders             Order[]
+  customers          User[]              @relation("StoreRegisteredCustomers")
+  importHistory      ImportHistory[]
+  fieldDefinitions   ProductFieldDefinition[]
+  storeAccount       StoreAccount?
+  storeRegistrations StoreRegistration[]
+}
+
+model StoreRegistration {
+  id                    String             @id @default(uuid())
+  applicationId         String             @unique
+  ownerName             String
+  storeName             String
+  primaryPhone          String
+  additionalPhones      String[]           @default([])
+  gstNumber             String?
+  email                 String
+  businessType          String
+  businessDescription   String?
+  
+  buildingNumber        String?
+  streetArea            String?
+  city                  String?
+  state                 String?
+  pinCode               String?
+  country               String             @default("India")
+  fullAddress           String
+
+  status                RegistrationStatus @default(PENDING)
+  rejectionReason       String?
+  additionalInfoRequest String?
+  applicantResponse     String?
+  adminNotes            String?
+
+  createdStoreId        String?
+  createdStore          Store?             @relation(fields: [createdStoreId], references: [id], onDelete: SetNull)
+  createdUserId         String?
+  createdUser           User?              @relation(fields: [createdUserId], references: [id], onDelete: SetNull)
+  storeAccount          StoreAccount?
+
+  submittedAt           DateTime           @default(now())
+  reviewedAt            DateTime?
+  reviewedBy            String?
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([status])
+  @@index([email])
+  @@index([primaryPhone])
+  @@index([applicationId])
+}
+
+model StoreAccount {
+  id                 String             @id @default(uuid())
+  storeId            String             @unique
+  store              Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  registrationId     String?            @unique
+  registration       StoreRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  userId             String?            @unique
+  user               User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  loginId            String             @unique
+  email              String
+  passwordHash       String
+  mustChangePassword Boolean            @default(true)
+  accountStatus      AccountStatus      @default(ACTIVE)
+  createdAt          DateTime           @default(now())
+  lastLoginAt        DateTime?
+  passwordChangedAt  DateTime?
+
+  @@index([loginId])
+  @@index([email])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String
+  actorId    String?
+  actorEmail String?
+  actorRole  String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Category {

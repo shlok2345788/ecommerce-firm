@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Store, Settings, LogOut, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { LayoutDashboard, Users, Store, Settings, LogOut, ShieldCheck, ArrowUpRight, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 
@@ -22,6 +22,7 @@ export default function SuperadminSidebar({ adminName = 'Platform Director' }: {
 
   const navItems = [
     { label: 'Overview', href: '/superadmin', icon: LayoutDashboard },
+    { label: 'Store Registrations', href: '/superadmin/registrations', icon: ClipboardCheck },
     { label: 'Admin Accounts', href: '/superadmin/admins', icon: Users },
     { label: 'Stores Directory', href: '/superadmin/stores', icon: Store },
     { label: 'System Settings', href: '/superadmin/settings', icon: Settings },
