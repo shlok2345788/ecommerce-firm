@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -26,7 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-export default function TrackRegistrationPage() {
+function TrackRegistrationContent() {
   const searchParams = useSearchParams();
   const queryAppId = searchParams.get('appId') || '';
   const queryId = searchParams.get('id') || '';
@@ -438,3 +438,10 @@ export default function TrackRegistrationPage() {
   );
 }
 
+export default function TrackRegistrationPage() {
+  return (
+    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-8" />}>
+      <TrackRegistrationContent />
+    </Suspense>
+  );
+}

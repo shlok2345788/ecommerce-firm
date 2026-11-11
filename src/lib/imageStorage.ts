@@ -28,6 +28,18 @@ function getB2Config() {
     );
   }
 
+  if (bucketName === 'YOUR_BUCKET_NAME') {
+    throw new ImageStorageConfigurationError(
+      'B2_BUCKET_NAME is set to placeholder "YOUR_BUCKET_NAME". Replace it with your actual Backblaze bucket name (e.g. ecommerce5768utgmjh).'
+    );
+  }
+
+  if (keyId.length < 20) {
+    throw new ImageStorageConfigurationError(
+      'Invalid B2_APPLICATION_KEY_ID: "' + keyId + '" is a 12-character Master Application Key ID. Backblaze S3 API strictly requires a 25-character Application Key ID (starts with 00...). Create one in Backblaze under App Keys -> "Add a New Application Key".'
+    );
+  }
+
   let endpoint = process.env.B2_ENDPOINT?.trim();
   if (endpoint && !endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
     endpoint = `https://${endpoint}`;
