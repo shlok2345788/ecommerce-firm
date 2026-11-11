@@ -64,9 +64,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 413 });
     }
 
+    const details = error instanceof Error ? `: ${error.message}` : '';
     return NextResponse.json(
       {
-        error: 'Image storage provider rejected the upload. Check the provider credentials, bucket name, region, and public URL configuration.',
+        error: `Image storage provider rejected the upload${details}. Check the provider credentials, bucket name, region, and public URL configuration.`,
       },
       { status: 502 }
     );

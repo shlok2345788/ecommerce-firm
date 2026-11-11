@@ -14,27 +14,45 @@ export class ImageStorageConfigurationError extends Error {
 }
 
 function getB2Config() {
-  const values = {
-    keyId: process.env.B2_APPLICATION_KEY_ID,
-    applicationKey: process.env.B2_APPLICATION_KEY,
-    bucketName: process.env.B2_BUCKET_NAME,
-  };
-  const configured = Object.values(values).some(Boolean);
+  const keyId = process.env.B2_APPLICATION_KEY_ID?.trim();
+  const applicationKey = process.env.B2_APPLICATION_KEY?.trim();
+  const bucketName = process.env.B2_BUCKET_NAME?.trim();
+
+  const configured = Boolean(keyId || applicationKey || bucketName);
 
   if (!configured) return null;
 
-  if (Object.values(values).some((value) => !value)) {
+  if (!keyId || !applicationKey || !bucketName) {
     throw new ImageStorageConfigurationError(
       'Backblaze storage is partially configured. Set B2_APPLICATION_KEY_ID, B2_APPLICATION_KEY, and B2_BUCKET_NAME.'
     );
   }
 
+  let endpoint = process.env.B2_ENDPOINT?.trim();
+  if (endpoint && !endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+    endpoint = `https://${endpoint}`;
+  }
+  if (endpoint) {
+    endpoint = endpoint.replace(/\/+$/, '');
+  }
+
+  let region = process.env.B2_REGION?.trim();
+  if (!region && endpoint) {
+    const match = endpoint.match(/s3\.([a-z0-9-]+)\.backblazeb2\.com/i);
+    if (match) {
+      region = match[1];
+    }
+  }
+  region = region || 'us-east-005';
+  endpoint = endpoint || `https://s3.${region}.backblazeb2.com`;
+
   return {
-    ...values,
-    endpoint:
-      process.env.B2_ENDPOINT ||
-      `https://s3.${process.env.B2_REGION || 'us-east-005'}.backblazeb2.com`,
-    publicUrl: process.env.B2_PUBLIC_URL,
+    keyId,
+    applicationKey,
+    bucketName,
+    region,
+    endpoint,
+    publicUrl: process.env.B2_PUBLIC_URL?.trim()?.replace(/\/+$/, ''),
   };
 }
 
@@ -65,7 +83,7 @@ export async function uploadImage(file: File): Promise<string> {
   if (b2) {
     const client = new S3Client({
       endpoint: b2.endpoint,
-      region: process.env.B2_REGION || 'us-east-005',
+      region: b2.region,
       credentials: {
         accessKeyId: b2.keyId,
         secretAccessKey: b2.applicationKey,
