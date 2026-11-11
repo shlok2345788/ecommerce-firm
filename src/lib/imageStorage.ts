@@ -46,14 +46,36 @@ function getB2Config() {
   region = region || 'us-east-005';
   endpoint = endpoint || `https://s3.${region}.backblazeb2.com`;
 
+  const isPrivate =
+    process.env.B2_PRIVATE_BUCKET === 'true' ||
+    process.env.B2_BUCKET_PRIVATE === 'true';
+  const defaultPublicUrl = isPrivate ? '/api/images' : undefined;
+
   return {
     keyId,
     applicationKey,
     bucketName,
     region,
     endpoint,
-    publicUrl: process.env.B2_PUBLIC_URL?.trim()?.replace(/\/+$/, ''),
+    publicUrl:
+      process.env.B2_PUBLIC_URL?.trim()?.replace(/\/+$/, '') || defaultPublicUrl,
   };
+}
+
+export function getB2Client() {
+  const b2 = getB2Config();
+  if (!b2) return null;
+
+  const client = new S3Client({
+    endpoint: b2.endpoint,
+    region: b2.region,
+    credentials: {
+      accessKeyId: b2.keyId,
+      secretAccessKey: b2.applicationKey,
+    },
+  });
+
+  return { client, bucketName: b2.bucketName };
 }
 
 function getSafeFileName(fileName: string) {
