@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { ImageStorageConfigurationError, uploadImage } from '@/lib/imageStorage';
 
+export const runtime = 'nodejs';
+
 const MAX_UPLOAD_BATCH_SIZE = 3.5 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
@@ -54,9 +56,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 503 });
     }
 
+    if (error instanceof Error && error.message.startsWith('Unsupported file type:')) {
+      return NextResponse.json({ error: error.message }, { status: 415 });
+    }
+
+    if (error instanceof Error && error.message === 'Images must be 4 MB or smaller') {
+      return NextResponse.json({ error: error.message }, { status: 413 });
+    }
+
     return NextResponse.json(
-      { error: 'Failed to process image upload' },
-      { status: 500 }
+      {
+        error: 'Image storage provider rejected the upload. Check the provider credentials, bucket name, region, and public URL configuration.',
+      },
+      { status: 502 }
     );
   }
 }
