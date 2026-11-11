@@ -6,6 +6,13 @@ import path from 'path';
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
 
+export class ImageStorageConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ImageStorageConfigurationError';
+  }
+}
+
 function getB2Config() {
   const values = {
     keyId: process.env.B2_APPLICATION_KEY_ID,
@@ -17,7 +24,7 @@ function getB2Config() {
   if (!configured) return null;
 
   if (Object.values(values).some((value) => !value)) {
-    throw new Error(
+    throw new ImageStorageConfigurationError(
       'Backblaze storage is partially configured. Set B2_APPLICATION_KEY_ID, B2_APPLICATION_KEY, and B2_BUCKET_NAME.'
     );
   }
@@ -90,7 +97,7 @@ export async function uploadImage(file: File): Promise<string> {
   }
 
   if (process.env.VERCEL) {
-    throw new Error(
+    throw new ImageStorageConfigurationError(
       'Persistent image storage is not configured. Set BLOB_READ_WRITE_TOKEN or the B2 storage variables.'
     );
   }

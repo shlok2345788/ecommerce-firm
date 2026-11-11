@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { uploadImage } from '@/lib/imageStorage';
+import { ImageStorageConfigurationError, uploadImage } from '@/lib/imageStorage';
 
 const MAX_UPLOAD_BATCH_SIZE = 3.5 * 1024 * 1024;
 
@@ -50,6 +50,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Image upload error:', error);
+    if (error instanceof ImageStorageConfigurationError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+
     return NextResponse.json(
       { error: 'Failed to process image upload' },
       { status: 500 }
