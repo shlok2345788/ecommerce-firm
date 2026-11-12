@@ -30,7 +30,7 @@ export function validateEmail(email: string): boolean {
 }
 
 export function validateGSTIN(gstin: string): boolean {
-  if (!gstin) return true; // Optional field
+  if (!gstin || !gstin.trim()) return false;
   return GSTIN_REGEX.test(gstin.trim().toUpperCase());
 }
 

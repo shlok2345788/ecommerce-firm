@@ -22,7 +22,6 @@ export default function SuperadminSidebar({ adminName = 'Platform Director' }: {
 
   const navItems = [
     { label: 'Overview', href: '/superadmin', icon: LayoutDashboard },
-    { label: 'Store Registrations', href: '/superadmin/registrations', icon: ClipboardCheck },
     { label: 'Admin Accounts', href: '/superadmin/admins', icon: Users },
     { label: 'Stores Directory', href: '/superadmin/stores', icon: Store },
     { label: 'System Settings', href: '/superadmin/settings', icon: Settings },

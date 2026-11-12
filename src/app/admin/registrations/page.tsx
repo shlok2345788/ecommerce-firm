@@ -1,8 +1,7 @@
 'use client';
 
-import StoreRegistrationRequestsPage from '@/app/superadmin/registrations/page';
+import CustomerRequestsPage from '@/app/admin/customer-requests/page';
 
 export default function AdminRegistrationsPage() {
-  return <StoreRegistrationRequestsPage />;
+  return <CustomerRequestsPage />;
 }
-

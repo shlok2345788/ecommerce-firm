@@ -65,10 +65,14 @@ export default function CustomerLoginPage() {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      // Customer flow: redirect to destination or dashboard
+      // Customer flow: redirect to first-login if mandatory password change, else destination or dashboard
       window.dispatchEvent(new Event('customer-auth-changed'));
-      const target = redirectParam || `/store/${slug}/dashboard`;
-      router.push(target);
+      if (data.mustChangePassword || data.customer?.firstLogin) {
+        router.push(`/store/${slug}/first-login`);
+      } else {
+        const target = redirectParam || `/store/${slug}/dashboard`;
+        router.push(target);
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
       setLoading(false);
@@ -148,14 +152,14 @@ export default function CustomerLoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-700">Phone or Email *</label>
+                <label className="text-xs font-medium text-zinc-700">Login ID, Email, or Phone *</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     required
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="+1 555-0192 or user@example.com"
+                    placeholder="e.g. CUST_102, user@example.com, or mobile number"
                     className="pl-9 text-xs h-9"
                   />
                 </div>

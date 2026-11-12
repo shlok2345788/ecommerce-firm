@@ -329,3 +329,164 @@ export async function sendStoreSuspendedEmail({
   return sendEmail({ to: email, subject, html });
 }
 
+/**
+ * CUSTOMER REGISTRATION EMAILS (Store -> Customer)
+ */
+
+export async function sendCustomerRegistrationSubmittedEmail({
+  email,
+  customerName,
+  storeName,
+  applicationId,
+}: {
+  email: string;
+  customerName: string;
+  storeName: string;
+  applicationId: string;
+}): Promise<DeliveryResult> {
+  const subject = `Registration Request Received - ${storeName} [${applicationId}]`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+      <h2 style="margin-top: 0; color: #09090b; font-size: 20px;">Customer Registration Received</h2>
+      <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${customerName}</strong>,</p>
+      <p style="font-size: 14px; line-height: 1.5;">
+        Thank you for submitting your customer registration request for <strong>${storeName}</strong>.
+      </p>
+      <div style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 13px; color: #71717a;">Your Application Reference:</p>
+        <p style="margin: 4px 0 0 0; font-family: monospace; font-size: 18px; font-weight: bold; color: #09090b;">${applicationId}</p>
+      </div>
+      <p style="font-size: 14px; line-height: 1.5;">
+        The store administrator will review your details. Once approved, your login credentials will be delivered to this email address.
+      </p>
+      <p style="font-size: 11px; color: #71717a; border-top: 1px solid #e4e4e7; padding-top: 16px; margin-top: 24px;">
+        ${storeName} · OmniStore Customer Commerce Network
+      </p>
+    </div>
+  `;
+  return sendEmail({ to: email, subject, html });
+}
+
+export async function sendCustomerApprovedEmail({
+  email,
+  customerName,
+  storeName,
+  loginId,
+  temporaryPassword,
+  loginUrl,
+}: {
+  email: string;
+  customerName: string;
+  storeName: string;
+  loginId: string;
+  temporaryPassword: string;
+  loginUrl: string;
+}): Promise<DeliveryResult> {
+  const subject = `Welcome to ${storeName}! Your Customer Login Credentials`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+      <h2 style="margin-top: 0; color: #09090b; font-size: 20px;">Welcome to ${storeName}</h2>
+      <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${customerName}</strong>,</p>
+      <p style="font-size: 14px; line-height: 1.5;">
+        Your customer registration request for <strong>${storeName}</strong> has been approved. You can now log in, browse products, and place orders.
+      </p>
+
+      <div style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; padding: 18px; margin: 18px 0;">
+        <h4 style="margin: 0 0 12px 0; font-size: 14px; color: #09090b; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px;">Your Confidential Access Credentials:</h4>
+        <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; color: #71717a; width: 140px;">Store Name:</td>
+            <td style="padding: 6px 0; font-weight: 600; color: #09090b;">${storeName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #71717a;">Customer Login ID:</td>
+            <td style="padding: 6px 0; font-family: monospace; font-weight: 600; color: #09090b;">${loginId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #71717a;">Temporary Password:</td>
+            <td style="padding: 6px 0; font-family: monospace; font-weight: 600; color: #09090b; background-color: #fef3c7; padding: 4px 8px; border-radius: 4px; display: inline-block;">${temporaryPassword}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin: 24px 0;">
+        <a href="${loginUrl}" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block;">
+          Log In to ${storeName} →
+        </a>
+      </div>
+
+      <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 12px; margin: 16px 0; font-size: 12px; color: #92400e;">
+        <strong>Important Security Notice:</strong> Upon your first sign in, you will be prompted to replace this temporary password with a confidential permanent password.
+      </div>
+
+      <p style="font-size: 11px; color: #71717a; border-top: 1px solid #e4e4e7; padding-top: 16px; margin-top: 24px;">
+        ${storeName} · Powered by OmniStore Multi-Tenant Commerce
+      </p>
+    </div>
+  `;
+  return sendEmail({ to: email, subject, html });
+}
+
+export async function sendCustomerRejectedEmail({
+  email,
+  customerName,
+  storeName,
+  reason,
+}: {
+  email: string;
+  customerName: string;
+  storeName: string;
+  reason: string;
+}): Promise<DeliveryResult> {
+  const subject = `Update on your registration for ${storeName}`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+      <h2 style="margin-top: 0; color: #09090b; font-size: 20px;">Registration Update</h2>
+      <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${customerName}</strong>,</p>
+      <p style="font-size: 14px; line-height: 1.5;">
+        Thank you for your interest in <strong>${storeName}</strong>. Following review, your customer registration request cannot be approved at this time.
+      </p>
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 14px; margin: 16px 0; font-size: 13px; color: #991b1b;">
+        <strong>Reason:</strong> ${reason}
+      </div>
+      <p style="font-size: 11px; color: #71717a; border-top: 1px solid #e4e4e7; padding-top: 16px; margin-top: 24px;">
+        ${storeName} Administration
+      </p>
+    </div>
+  `;
+  return sendEmail({ to: email, subject, html });
+}
+
+export async function sendCustomerAdditionalInfoRequestedEmail({
+  email,
+  customerName,
+  storeName,
+  message,
+}: {
+  email: string;
+  customerName: string;
+  storeName: string;
+  message: string;
+}): Promise<DeliveryResult> {
+  const subject = `Information Required: Your registration for ${storeName}`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+      <h2 style="margin-top: 0; color: #09090b; font-size: 20px;">Additional Information Requested</h2>
+      <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${customerName}</strong>,</p>
+      <p style="font-size: 14px; line-height: 1.5;">
+        The store administrator for <strong>${storeName}</strong> has requested additional information to complete your registration review:
+      </p>
+      <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 14px; margin: 16px 0; font-size: 13px; color: #1e40af;">
+        ${message}
+      </div>
+      <p style="font-size: 14px; line-height: 1.5;">
+        Please reply to this email or contact the store directly with the requested details.
+      </p>
+      <p style="font-size: 11px; color: #71717a; border-top: 1px solid #e4e4e7; padding-top: 16px; margin-top: 24px;">
+        ${storeName} Administration
+      </p>
+    </div>
+  `;
+  return sendEmail({ to: email, subject, html });
+}
+

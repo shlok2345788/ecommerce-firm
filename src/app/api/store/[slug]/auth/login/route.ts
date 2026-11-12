@@ -31,17 +31,18 @@ export async function POST(
     const trimmed = identifier.trim();
     const normalizedEmail = trimmed.toLowerCase();
 
-    // Find customer by email or phone
+    // Find customer by email, phone, or loginId
     const customer = await prisma.user.findFirst({
       where: {
         OR: [
           { email: normalizedEmail },
+          { loginId: trimmed },
           { phone: trimmed },
           { phone: trimmed.replace(/\s+/g, '') },
         ],
       },
       include: {
-        registeredStore: { select: { id: true, slug: true } },
+        registeredStore: { select: { id: true, name: true, slug: true } },
       },
     });
 
@@ -52,9 +53,19 @@ export async function POST(
       );
     }
 
+    // Tenant isolation verification: Customer accounts can only log in to their registered store
+    if (customer.role === 'CUSTOMER' && customer.registeredStoreId && customer.registeredStoreId !== store.id) {
+      return NextResponse.json(
+        {
+          error: `Access Denied: This customer account is registered with "${customer.registeredStore?.name || 'another store'}". You cannot log into ${store.name}.`,
+        },
+        { status: 403 }
+      );
+    }
+
     if (customer.status !== 'ACTIVE') {
       return NextResponse.json(
-        { error: 'Your account is deactivated. Please contact support.' },
+        { error: 'Your account is deactivated or suspended. Please contact store management.' },
         { status: 403 }
       );
     }
@@ -67,25 +78,31 @@ export async function POST(
       );
     }
 
+    const mustChange = Boolean(customer.firstLogin || customer.mustChangePassword);
+
     const token = signToken({
       userId: customer.id,
       email: customer.email,
       name: customer.name,
       phone: customer.phone || undefined,
       role: customer.role as 'SUPERADMIN' | 'ADMIN' | 'CUSTOMER',
-      firstLogin: customer.firstLogin,
+      firstLogin: mustChange,
       storeId: store.id,
       storeSlug: store.slug,
     });
 
     const response = NextResponse.json({
       success: true,
+      mustChangePassword: mustChange,
+      firstLogin: mustChange,
       customer: {
         id: customer.id,
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
         role: customer.role,
+        firstLogin: mustChange,
+        mustChangePassword: mustChange,
         storeSlug: store.slug,
       },
     });

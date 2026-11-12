@@ -24,6 +24,35 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Verify tenant isolation
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        registeredStoreId: true,
+        firstLogin: true,
+        mustChangePassword: true,
+      },
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (dbUser.role === 'CUSTOMER' && dbUser.registeredStoreId && dbUser.registeredStoreId !== store.id) {
+      return NextResponse.json(
+        { error: 'Tenant isolation violation: you do not have permission to access another store dashboard.' },
+        { status: 403 }
+      );
+    }
+
+    // If first login is required, let the frontend know so it can redirect to /store/[slug]/first-login
+    const mustChange = Boolean(dbUser.firstLogin || dbUser.mustChangePassword);
+
     // Fetch customer's orders for this store
     const orders = await prisma.order.findMany({
       where: {
@@ -106,10 +135,12 @@ export async function GET(
     return NextResponse.json({
       store,
       customer: {
-        id: user.userId,
-        name: user.name,
-        email: user.email,
-        phone: user.phone || 'N/A',
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        phone: dbUser.phone || 'N/A',
+        firstLogin: mustChange,
+        mustChangePassword: mustChange,
       },
       stats: {
         totalOrders,

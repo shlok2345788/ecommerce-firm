@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   SlidersHorizontal,
   Menu,
+  UserCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -56,6 +57,7 @@ export default function AdminSidebar({
 
   const navItems = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
+    { label: 'Customer Requests', href: '/admin/customer-requests', icon: UserCheck },
     { label: 'Categories', href: '/admin/categories', icon: Layers },
     { label: 'Products', href: '/admin/products', icon: Package },
     { label: 'Bulk Import', href: '/admin/products/import', icon: FileSpreadsheet },

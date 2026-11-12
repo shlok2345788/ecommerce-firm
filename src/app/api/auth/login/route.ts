@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
           take: 1,
           select: { id: true, name: true, slug: true, status: true },
         },
+        registeredStore: {
+          select: { id: true, name: true, slug: true, status: true },
+        },
       },
     });
 
@@ -59,10 +62,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const primaryStore = user.stores[0];
+    const primaryStore = user.role === 'CUSTOMER' ? user.registeredStore : user.stores[0];
     if (user.role === 'ADMIN' && primaryStore && primaryStore.status === 'SUSPENDED') {
       return NextResponse.json(
         { error: 'Your store account has been suspended by administration. Please contact compliance.' },
+        { status: 403 }
+      );
+    }
+
+    if (user.role === 'CUSTOMER' && primaryStore && primaryStore.status === 'SUSPENDED') {
+      return NextResponse.json(
+        { error: 'This store is temporarily suspended. Please contact store support.' },
         { status: 403 }
       );
     }
@@ -98,6 +108,7 @@ export async function POST(req: NextRequest) {
         firstLogin: mustChange,
         mustChangePassword: mustChange,
         store: primaryStore,
+        storeSlug: primaryStore?.slug,
       },
     });
 

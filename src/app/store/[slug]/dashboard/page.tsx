@@ -48,6 +48,10 @@ export default function CustomerDashboardPage() {
       }
       if (res.ok) {
         const json = await res.json();
+        if (json.customer?.firstLogin || json.customer?.mustChangePassword) {
+          router.push(`/store/${slug}/first-login`);
+          return;
+        }
         setData(json);
       }
     } catch (e) {
