@@ -101,14 +101,14 @@ export async function POST(
       );
     }
 
-    if (!gstNumber || !validateGSTIN(gstNumber)) {
+    if (gstNumber && !validateGSTIN(gstNumber)) {
       return NextResponse.json(
-        { error: 'Valid 15-character GSTIN is mandatory (e.g. 27ABCDE1234F1Z5)' },
+        { error: 'GSTIN must be a valid 15-character number when provided' },
         { status: 400 }
       );
     }
 
-    const cleanedGSTIN = gstNumber.trim().toUpperCase();
+    const cleanedGSTIN = gstNumber?.trim().toUpperCase() || null;
 
     // 1. Check if user is already an active customer of THIS store
     const existingActiveCustomer = await prisma.user.findFirst({

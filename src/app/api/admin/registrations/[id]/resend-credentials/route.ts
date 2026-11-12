@@ -12,7 +12,7 @@ export async function POST(
 ) {
   try {
     const adminUser = await getCurrentUser();
-    if (!adminUser || (adminUser.role !== 'SUPERADMIN' && adminUser.role !== 'ADMIN')) {
+    if (!adminUser || adminUser.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -99,4 +99,3 @@ export async function POST(
     );
   }
 }
-

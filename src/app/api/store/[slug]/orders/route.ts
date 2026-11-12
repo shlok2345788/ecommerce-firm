@@ -112,19 +112,11 @@ export async function POST(
       where: { id: currentUser.userId },
     });
 
-    if (!customer) {
+    if (!customer || customer.role !== 'CUSTOMER' || customer.registeredStoreId !== store.id) {
       return NextResponse.json(
-        { error: 'Customer account not found. Please log in again.' },
-        { status: 401 }
+        { error: 'This customer account is not authorized for the requested store.' },
+        { status: 403 }
       );
-    }
-
-    // Associate registeredStoreId if not yet set
-    if (!customer.registeredStoreId) {
-      await prisma.user.update({
-        where: { id: customer.id },
-        data: { registeredStoreId: store.id },
-      });
     }
 
     // Save phone to customer profile if provided and not yet stored

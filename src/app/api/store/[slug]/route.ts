@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { sanitizeProductsForCustomer } from '@/lib/productFields';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
@@ -40,6 +41,11 @@ export async function GET(
         },
         { status: 403 }
       );
+    }
+
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role === 'CUSTOMER' && currentUser.storeId !== store.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);

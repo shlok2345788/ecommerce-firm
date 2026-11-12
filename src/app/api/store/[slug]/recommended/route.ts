@@ -24,6 +24,9 @@ export async function GET(
     }
 
     const currentUser = await getCurrentUser();
+    if (currentUser?.role === 'CUSTOMER' && currentUser.storeId !== store.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // 1. If customer is authenticated, query Order and OrderItem models for products previously purchased by customerId at this storeId
     if (currentUser?.userId) {

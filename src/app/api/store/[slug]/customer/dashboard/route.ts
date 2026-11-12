@@ -43,7 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (dbUser.role === 'CUSTOMER' && dbUser.registeredStoreId && dbUser.registeredStoreId !== store.id) {
+    if (dbUser.role !== 'CUSTOMER' || dbUser.registeredStoreId !== store.id) {
       return NextResponse.json(
         { error: 'Tenant isolation violation: you do not have permission to access another store dashboard.' },
         { status: 403 }

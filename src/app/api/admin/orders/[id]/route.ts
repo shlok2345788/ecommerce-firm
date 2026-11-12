@@ -29,16 +29,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid order status' }, { status: 400 });
     }
 
-    const updatedOrder = await prisma.order.update({
-      where: { id },
+    const updated = await prisma.order.updateMany({
+      where: { id, storeId: store.id },
       data: { status },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
+    });
+    if (updated.count === 0) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    const updatedOrder = await prisma.order.findUnique({
+      where: { id },
+      include: { items: { include: { product: true } } },
     });
 
     return NextResponse.json({ success: true, order: updatedOrder });

@@ -27,7 +27,7 @@ export async function POST(
     }
 
     // Verify user belongs to this store
-    if (currentUser.role === 'CUSTOMER' && currentUser.storeId && currentUser.storeId !== store.id) {
+    if (currentUser.role !== 'CUSTOMER' || currentUser.storeId !== store.id) {
       return NextResponse.json({ error: 'Access denied to this store' }, { status: 403 });
     }
 
@@ -130,4 +130,3 @@ export async function POST(
     );
   }
 }
-

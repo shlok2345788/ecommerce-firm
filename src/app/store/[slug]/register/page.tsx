@@ -60,8 +60,8 @@ export default function CustomerRegisterPage() {
     e.preventDefault();
     setError(null);
 
-    if (!gstNumber || gstNumber.trim().length !== 15) {
-      setError('A valid 15-character GST number (GSTIN) is mandatory');
+    if (gstNumber && gstNumber.trim().length !== 15) {
+      setError('GST number must be 15 characters when provided');
       return;
     }
 
@@ -171,11 +171,9 @@ export default function CustomerRegisterPage() {
                     <ShoppingBag className="w-3.5 h-3.5 mr-1.5" /> Continue Browsing Store
                   </Button>
                 </Link>
-                <Link href={`/store/${slug}/login`} className="flex-1">
-                  <Button variant="outline" className="w-full text-xs">
-                    Go to Login
-                  </Button>
-                </Link>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-900">
+                Status: <strong>PENDING</strong>. Login is available only after approval and credential delivery.
               </div>
             </CardContent>
           </Card>
@@ -312,16 +310,15 @@ export default function CustomerRegisterPage() {
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-zinc-700">
-                      GST Number <span className="text-red-500">*</span>
+                      GST Number <span className="text-zinc-400">(Optional)</span>
                     </label>
                     <div className="relative">
                       <FileText className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <Input
-                        required
                         maxLength={15}
                         value={gstNumber}
                         onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
-                        placeholder="15-digit GSTIN (Mandatory)"
+                        placeholder="15-digit GSTIN (if applicable)"
                         className="pl-9 text-xs h-9 font-mono"
                       />
                     </div>

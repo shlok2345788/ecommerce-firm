@@ -79,18 +79,21 @@ export function generateCompliantTemporaryPassword(length = 12): string {
   const numbers = '23456789';
   const specials = '!@#$%&*';
 
+  const randomIndex = (max: number) => {
+    const values = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(values);
+    return values[0] % max;
+  };
   let pwd = '';
-  pwd += uppers.charAt(Math.floor(Math.random() * uppers.length));
-  pwd += lowers.charAt(Math.floor(Math.random() * lowers.length));
-  pwd += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  pwd += specials.charAt(Math.floor(Math.random() * specials.length));
+  pwd += uppers.charAt(randomIndex(uppers.length));
+  pwd += lowers.charAt(randomIndex(lowers.length));
+  pwd += numbers.charAt(randomIndex(numbers.length));
+  pwd += specials.charAt(randomIndex(specials.length));
 
   const allChars = uppers + lowers + numbers + specials;
   for (let i = pwd.length; i < length; i++) {
-    pwd += allChars.charAt(Math.floor(Math.random() * allChars.length));
+    pwd += allChars.charAt(randomIndex(allChars.length));
   }
 
-  // Shuffle the string
-  return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+  return pwd.split('').sort(() => randomIndex(3) - 1).join('');
 }
-

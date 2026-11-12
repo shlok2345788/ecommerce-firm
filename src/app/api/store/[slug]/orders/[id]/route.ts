@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { generateWhatsAppOrderLink } from '@/lib/utils';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
@@ -18,10 +19,16 @@ export async function GET(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
+    const currentUser = await getCurrentUser();
+    if (!currentUser || currentUser.role !== 'CUSTOMER' || currentUser.storeId !== store.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const order = await prisma.order.findFirst({
       where: {
         id,
         storeId: store.id,
+        customerId: currentUser.userId,
       },
       include: {
         items: {

@@ -85,9 +85,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
-    await prisma.category.delete({
-      where: { id },
+    const deleted = await prisma.category.deleteMany({
+      where: { id, storeId: store.id },
     });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true, message: 'Category deleted' });
   } catch (error) {

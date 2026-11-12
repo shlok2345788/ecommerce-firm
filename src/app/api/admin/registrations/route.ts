@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== 'SUPERADMIN' && user.role !== 'ADMIN')) {
+    if (!user || user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 401 });
     }
 
@@ -83,4 +83,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-

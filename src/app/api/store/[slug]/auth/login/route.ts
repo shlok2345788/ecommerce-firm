@@ -54,10 +54,10 @@ export async function POST(
     }
 
     // Tenant isolation verification: Customer accounts can only log in to their registered store
-    if (customer.role === 'CUSTOMER' && customer.registeredStoreId && customer.registeredStoreId !== store.id) {
+    if (customer.role !== 'CUSTOMER' || customer.registeredStoreId !== store.id) {
       return NextResponse.json(
         {
-          error: `Access Denied: This customer account is registered with "${customer.registeredStore?.name || 'another store'}". You cannot log into ${store.name}.`,
+          error: `Access denied: this customer account is not registered with ${store.name}.`,
         },
         { status: 403 }
       );

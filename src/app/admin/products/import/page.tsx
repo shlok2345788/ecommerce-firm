@@ -175,6 +175,13 @@ export default function ProductImportPage() {
     return uploaded;
   };
 
+  const removeUploadedImage = (imageName: string) => {
+    setUnmatched((current) => current.filter((image) => image.name !== imageName));
+    setUploadedImages((current) => current.filter((image) => image.name !== imageName));
+    setImages((current) => current.filter((image) => image.name !== imageName));
+    setMessage(`Removed "${imageName}" from this import.`);
+  };
+
   const preview = async () => {
     if (!spreadsheet) {
       setError('Choose an Excel or CSV file first.');
@@ -580,7 +587,7 @@ export default function ProductImportPage() {
       {unmatched.length > 0 && (
         <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-4">
           <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">Unmatched images ({unmatched.length})</h2><span className="text-xs text-zinc-500">No automatic assignment was made.</span></div>
-          <div className="flex flex-wrap gap-3">{unmatched.map((image) => <div key={image.name} className="w-40 rounded-md border border-amber-200 bg-white p-1"><img src={image.url} alt={image.name} className="h-20 w-full rounded object-cover" /><p className="truncate p-1 text-[10px]">{image.name}</p><select className="h-7 w-full rounded border border-zinc-200 px-1 text-[10px]" defaultValue="" onChange={(event) => { const index = Number(event.target.value); if (Number.isNaN(index)) return; updateRow(index, { images: [...rows[index].images, image.url], imageNames: [...rows[index].imageNames, image.name], status: 'READY' }); setUnmatched(unmatched.filter((item) => item.name !== image.name)); }}><option value="">Assign to...</option>{rows.map((row, index) => <option key={row.rowNumber} value={index}>{row.title}</option>)}</select></div>)}</div>
+          <div className="flex flex-wrap gap-3">{unmatched.map((image) => <div key={image.name} className="w-40 rounded-md border border-amber-200 bg-white p-1"><div className="relative"><img src={image.url} alt={image.name} className="h-20 w-full rounded object-cover" /><button type="button" aria-label={`Remove ${image.name}`} title="Remove image" className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-zinc-600 shadow hover:bg-red-50 hover:text-red-600" onClick={() => removeUploadedImage(image.name)}><X className="h-3 w-3" /></button></div><p className="truncate p-1 text-[10px]">{image.name}</p><select className="h-7 w-full rounded border border-zinc-200 px-1 text-[10px]" defaultValue="" onChange={(event) => { const index = Number(event.target.value); if (Number.isNaN(index)) return; updateRow(index, { images: [...rows[index].images, image.url], imageNames: [...rows[index].imageNames, image.name], status: 'READY' }); setUnmatched((current) => current.filter((item) => item.name !== image.name)); }}><option value="">Assign to...</option>{rows.map((row, index) => <option key={row.rowNumber} value={index}>{row.title}</option>)}</select></div>)}</div>
         </section>
       )}
 
