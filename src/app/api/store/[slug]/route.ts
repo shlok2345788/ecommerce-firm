@@ -56,6 +56,7 @@ export async function GET(
     const productWhere: any = {
       storeId: store.id,
       isActive: true,
+      categoryId: { not: null },
     };
 
     if (categorySlug && categorySlug !== 'all') {

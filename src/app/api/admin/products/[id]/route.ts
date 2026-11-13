@@ -75,6 +75,14 @@ export async function PUT(
 
     const existingProduct = await prisma.product.findFirst({ where: { id, storeId: store.id } });
     if (!existingProduct) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    const nextCategoryId = categoryId === undefined ? existingProduct.categoryId : categoryId;
+    if (!nextCategoryId) return NextResponse.json({ error: 'A valid category is required' }, { status: 400 });
+    const category = await prisma.category.findFirst({ where: { id: nextCategoryId, storeId: store.id } });
+    if (!category) return NextResponse.json({ error: 'Category not found for this store' }, { status: 400 });
+    const parsedStock = stock === undefined ? existingProduct.stock : Number(stock);
+    if (!Number.isInteger(parsedStock) || parsedStock < 0) {
+      return NextResponse.json({ error: 'Stock must be a non-negative whole number' }, { status: 400 });
+    }
     const dataToUpdate: any = {};
     const configuredFields = await getEffectiveProductFields(store.id, categoryId === undefined ? existingProduct.categoryId : categoryId);
     const nextValues: Record<string, unknown> = {
@@ -84,7 +92,7 @@ export async function PUT(
       description: description === undefined ? existingProduct.description : description,
       price: price === undefined ? existingProduct.price : price,
       discountPrice: discountPrice === undefined ? existingProduct.discountPrice : discountPrice,
-      stock: stock === undefined ? existingProduct.stock : stock,
+      stock: parsedStock,
       images: images === undefined ? existingProduct.images : images,
       variants: variants === undefined ? existingProduct.variants : variants,
       specifications: specifications === undefined ? existingProduct.specifications : specifications,
@@ -107,13 +115,13 @@ export async function PUT(
     if (discountPrice !== undefined) {
       dataToUpdate.discountPrice = discountPrice === null || discountPrice === '' ? null : parseFloat(discountPrice);
     }
-    if (stock !== undefined) dataToUpdate.stock = parseInt(stock, 10);
+    if (stock !== undefined) dataToUpdate.stock = parsedStock;
     if (images !== undefined) {
       dataToUpdate.images = Array.isArray(images)
         ? images.map((i: string) => i.trim()).filter(Boolean)
         : [];
     }
-    if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
+    if (categoryId !== undefined) dataToUpdate.categoryId = categoryId;
     if (isActive !== undefined) dataToUpdate.isActive = Boolean(isActive);
     if (variants !== undefined) dataToUpdate.variants = variants;
     if (specifications !== undefined) dataToUpdate.specifications = specifications;

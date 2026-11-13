@@ -45,6 +45,8 @@ export default function AdminProductsPage() {
   const [isActive, setIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Image Upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -208,19 +210,45 @@ export default function AdminProductsPage() {
     setSubmitting(true);
 
     try {
+      if (!categoryId) throw new Error('Please select a category.');
+      const parsedStock = Number(stock);
+      if (!Number.isInteger(parsedStock) || parsedStock < 0) throw new Error('Stock must be a non-negative whole number.');
       const cleanedImages = images.map((i) => i.trim()).filter(Boolean);
       const payload = {
         title,
         ...(hasField('description') ? { description } : {}),
         ...(hasField('price') ? { price: price === '' ? null : parseFloat(price) } : {}),
         ...(hasField('discountPrice') ? { discountPrice: discountPrice ? parseFloat(discountPrice) : null } : {}),
-        ...(hasField('stock') ? { stock: parseInt(stock, 10) || 0 } : {}),
-        ...(hasField('category') ? { categoryId: categoryId || null } : {}),
+        stock: parsedStock,
+        categoryId,
         ...(hasField('images') ? { images: cleanedImages } : {}),
         brand: hasField('brand') ? String(customValues.brand || '') : undefined,
         sku: hasField('sku') ? String(customValues.sku || '') : undefined,
         attributes: customValues,
         isActive,
+      };
+
+      const createCategory = async () => {
+        const name = newCategoryName.trim();
+        if (!name) return;
+        setCreatingCategory(true);
+        setFormError(null);
+        try {
+          const response = await fetch('/api/admin/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to create category');
+          setCategories((current) => [...current, data.category].sort((a, b) => a.name.localeCompare(b.name)));
+          setCategoryId(data.category.id);
+          setNewCategoryName('');
+        } catch (error) {
+          setFormError(error instanceof Error ? error.message : 'Failed to create category');
+        } finally {
+          setCreatingCategory(false);
+        }
       };
 
       const url = editingProduct
@@ -492,23 +520,33 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {hasField('category') && (
                 <div className="space-y-1">
-                  <label className="font-medium text-zinc-700">{fieldLabel('category', 'Category')}{isRequired('category') ? ' *' : ''}</label>
+                  <label className="font-medium text-zinc-700">Category *</label>
                   <select
+                    required
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
                     className="w-full h-8 px-2 rounded-md border border-zinc-200 bg-white text-xs text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-950"
                   >
-                    <option value="">No Category</option>
+                    <option value="">Select a category</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
                   </select>
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={newCategoryName}
+                      onChange={(event) => setNewCategoryName(event.target.value)}
+                      placeholder="New category name"
+                      className="h-7 text-[11px]"
+                    />
+                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={createCategory} disabled={creatingCategory || !newCategoryName.trim()}>
+                      {creatingCategory ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create'}
+                    </Button>
+                  </div>
                 </div>
-                )}
 
                 {hasField('stock') && <div className="space-y-1">
                   <label className="font-medium text-zinc-700">{fieldLabel('stock', 'Stock Units')}{isRequired('stock') ? ' *' : ''}</label>

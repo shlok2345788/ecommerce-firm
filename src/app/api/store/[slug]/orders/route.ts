@@ -44,7 +44,16 @@ export async function POST(
     }
 
     // Fetch products to verify pricing and stock
-    const productIds = items.map((i: any) => i.productId);
+    const quantities = new Map<string, number>();
+    for (const item of items) {
+      const productId = String(item.productId || '');
+      const quantity = Number(item.quantity);
+      if (!productId || !Number.isInteger(quantity) || quantity <= 0) {
+        return NextResponse.json({ error: 'Each order item must have a valid product and quantity.' }, { status: 400 });
+      }
+      quantities.set(productId, (quantities.get(productId) || 0) + quantity);
+    }
+    const productIds = Array.from(quantities.keys());
     const dbProducts = await prisma.product.findMany({
       where: {
         id: { in: productIds },
@@ -69,11 +78,14 @@ export async function POST(
       title: string;
     }> = [];
 
-    for (const item of items) {
-      const prod = dbProducts.find((p) => p.id === item.productId);
+    for (const productId of productIds) {
+      const prod = dbProducts.find((p) => p.id === productId);
       if (!prod) continue;
 
-      const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+      const qty = quantities.get(productId) || 0;
+      if (qty > prod.stock) {
+        return NextResponse.json({ error: `${prod.title} has only ${prod.stock} item(s) available.` }, { status: 400 });
+      }
       const fields = await getEffectiveProductFields(store.id, prod.categoryId, prod.id);
       const priceField = fields.find((field) => field.key === 'price');
       if (priceField && priceField.customerVisibility !== 'VISIBLE') {
@@ -162,14 +174,13 @@ export async function POST(
 
       // Decrement stock for ordered products
       for (const oi of orderItemsData) {
-        await tx.product.update({
-          where: { id: oi.productId },
-          data: {
-            stock: {
-              decrement: oi.quantity,
-            },
-          },
+        const updated = await tx.product.updateMany({
+          where: { id: oi.productId, storeId: store.id, isActive: true, stock: { gte: oi.quantity } },
+          data: { stock: { decrement: oi.quantity } },
         });
+        if (updated.count !== 1) {
+          throw new Error(`Insufficient stock for product ${oi.productId}`);
+        }
       }
 
       return order;

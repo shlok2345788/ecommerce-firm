@@ -84,6 +84,18 @@ export async function POST(req: NextRequest) {
       isActive,
     } = body;
 
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return NextResponse.json({ error: 'Product title is required' }, { status: 400 });
+    }
+    if (!categoryId || typeof categoryId !== 'string') {
+      return NextResponse.json({ error: 'A valid category is required' }, { status: 400 });
+    }
+    const category = await prisma.category.findFirst({ where: { id: categoryId, storeId: store.id } });
+    if (!category) return NextResponse.json({ error: 'Category not found for this store' }, { status: 400 });
+    const parsedStock = stock === undefined || stock === null || stock === '' ? 0 : Number(stock);
+    if (!Number.isInteger(parsedStock) || parsedStock < 0) {
+      return NextResponse.json({ error: 'Stock must be a non-negative whole number' }, { status: 400 });
+    }
     const configuredFields = await getEffectiveProductFields(store.id, categoryId || null);
     const requiredFields = configuredFields.filter((field) =>
       field.required && field.customerVisibility !== 'HIDDEN'
@@ -119,7 +131,7 @@ export async function POST(req: NextRequest) {
         description: description?.trim() || null,
         price: price === undefined || price === null || price === '' ? null : parseFloat(price),
         discountPrice: discountPrice === undefined || discountPrice === null || discountPrice === '' ? null : parseFloat(discountPrice),
-        stock: parseInt(stock, 10) || 0,
+        stock: parsedStock,
         images: imagesArray.length > 0 ? imagesArray : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80'],
         variants: variants ?? null,
         specifications: specifications ?? null,

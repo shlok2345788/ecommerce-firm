@@ -47,7 +47,7 @@ export async function sanitizeProductForCustomer(product: Record<string, any>) {
   const hasPrice = product.price !== null && product.price !== undefined;
   // A missing price definition is the default configuration, not a hidden
   // price. Only an explicitly configured non-visible field disables checkout.
-  const canPurchase = hasPrice && (!priceField || priceField.customerVisibility === 'VISIBLE');
+  const canPurchase = hasPrice && product.stock > 0 && (!priceField || priceField.customerVisibility === 'VISIBLE');
 
   return {
     id: product.id,

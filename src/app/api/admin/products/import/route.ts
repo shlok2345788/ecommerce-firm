@@ -30,6 +30,7 @@ type ImportRow = {
 };
 
 type UploadedImage = { name: string; url: string };
+const DEFAULT_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80';
 
 const aliases: Record<string, string[]> = {
   title: ['title', 'name', 'product', 'productname', 'producttitle'],
@@ -110,11 +111,13 @@ function parseRows(buffer: Buffer, mapping?: Record<string, string>) {
     const errors: string[] = [];
     const warnings: string[] = [];
     if (!title) errors.push('Product name is required');
+    if (stringValue(value('price')) && price === null) errors.push('Price must be a valid number');
     if (price !== null && price < 0) errors.push('Price must be a non-negative number');
     if (price === null) warnings.push('Price is missing; product will be enquiry-only unless configured otherwise');
     if (discountPrice !== null && (discountPrice < 0 || (price !== null && discountPrice > price))) {
       errors.push('Sale price must be between zero and the regular price');
     }
+    if (stringValue(value('stock')) && stockValue === null) errors.push('Stock must be a valid whole number');
     if (stockValue !== null && (!Number.isInteger(stockValue) || stockValue < 0)) {
       errors.push('Stock must be a non-negative whole number');
     }
@@ -281,12 +284,17 @@ export async function POST(req: NextRequest) {
       }
       try {
         const category = row.category
-          ? await prisma.category.upsert({
-              where: { storeId_slug: { storeId: store.id, slug: slugify(row.category) } },
-              update: { name: row.category },
-              create: { storeId: store.id, name: row.category, slug: slugify(row.category) },
+          ? await prisma.category.findFirst({
+              where: {
+                storeId: store.id,
+                OR: [{ slug: slugify(row.category) }, { name: { equals: row.category.trim(), mode: 'insensitive' } }],
+              },
             })
           : null;
+        if (!category) {
+          errors.push({ row: row.rowNumber, message: `Category "${row.category}" does not exist in this store` });
+          continue;
+        }
         const configuredFields = category
           ? await getEffectiveProductFields(store.id, category.id)
           : [];
@@ -321,7 +329,7 @@ export async function POST(req: NextRequest) {
           price: row.price,
           discountPrice: row.discountPrice ?? null,
           stock: row.stock || 0,
-          images: row.images || [],
+          images: row.images?.length ? row.images : [DEFAULT_PRODUCT_IMAGE],
           variants: row.variants || null,
           specifications: row.specifications || null,
           attributes: row.attributes || null,
@@ -331,6 +339,15 @@ export async function POST(req: NextRequest) {
         const existing = row.sku
           ? await prisma.product.findFirst({ where: { storeId: store.id, sku: row.sku } })
           : null;
+        if (!existing && !row.sku) {
+          const duplicateName = await prisma.product.findFirst({
+            where: { storeId: store.id, title: { equals: row.title.trim(), mode: 'insensitive' } },
+          });
+          if (duplicateName) {
+            errors.push({ row: row.rowNumber, message: 'Duplicate product name without SKU; row skipped' });
+            continue;
+          }
+        }
         if (existing) {
           await prisma.product.update({ where: { id: existing.id }, data });
         } else {
