@@ -76,7 +76,7 @@ export async function POST(
       const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
       const fields = await getEffectiveProductFields(store.id, prod.categoryId, prod.id);
       const priceField = fields.find((field) => field.key === 'price');
-      if (priceField?.customerVisibility !== 'VISIBLE') {
+      if (priceField && priceField.customerVisibility !== 'VISIBLE') {
         return NextResponse.json(
           { error: `${prod.title} is not available for online checkout.` },
           { status: 400 }
