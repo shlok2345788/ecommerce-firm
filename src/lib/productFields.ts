@@ -54,7 +54,9 @@ export async function sanitizeProductForCustomer(product: Record<string, any>) {
     title: visibleKeys.has('title') ? product.title : '',
     price: canPurchase ? Number(product.price) : null,
     discountPrice: canPurchase && product.discountPrice !== null ? Number(product.discountPrice) : null,
-    stock: visibleKeys.has('stock') ? product.stock : 0,
+    // Stock is needed to determine purchase availability even when its
+    // display field is hidden from customers.
+    stock: product.stock,
     publicFields: visibleFields.filter((field) => !['title', 'price', 'discountPrice', 'images', 'stock'].includes(field.key)),
     purchaseAvailable: canPurchase,
   };
