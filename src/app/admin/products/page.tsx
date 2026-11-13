@@ -204,6 +204,29 @@ export default function AdminProductsPage() {
     setImages(images.filter((_, i) => i !== index));
   };
 
+  const createCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setCreatingCategory(true);
+    setFormError(null);
+    try {
+      const response = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to create category');
+      setCategories((current) => [...current, data.category].sort((a, b) => a.name.localeCompare(b.name)));
+      setCategoryId(data.category.id);
+      setNewCategoryName('');
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Failed to create category');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -226,29 +249,6 @@ export default function AdminProductsPage() {
         sku: hasField('sku') ? String(customValues.sku || '') : undefined,
         attributes: customValues,
         isActive,
-      };
-
-      const createCategory = async () => {
-        const name = newCategoryName.trim();
-        if (!name) return;
-        setCreatingCategory(true);
-        setFormError(null);
-        try {
-          const response = await fetch('/api/admin/categories', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
-          });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Failed to create category');
-          setCategories((current) => [...current, data.category].sort((a, b) => a.name.localeCompare(b.name)));
-          setCategoryId(data.category.id);
-          setNewCategoryName('');
-        } catch (error) {
-          setFormError(error instanceof Error ? error.message : 'Failed to create category');
-        } finally {
-          setCreatingCategory(false);
-        }
       };
 
       const url = editingProduct
